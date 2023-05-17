@@ -1,0 +1,20 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "prettier.configPath": "./.prettierrc",
+        "prettier.ignorePath": ".prettierignore",
+        "editor.formatOnPaste": true,
+        "editor.formatOnSave": true,
+        "editor.wordWrap": "wordWrapColumn",
+        "editor.wordWrapColumn": 80,
+        "editor.rulers": [80],
+        "[prisma]": {
+            "editor.defaultFormatter": "Prisma.prisma"
+        }
+    }
+}
