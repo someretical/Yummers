@@ -9,6 +9,7 @@ datasource db {
 
 model Guild {
   id                  String  @id @db.VarChar(32)
+  birthdays_enabled   Boolean @default(false)
   birthday_role_id    String? @db.VarChar(32)
   birthday_channel_id String? @db.VarChar(32)
 }
