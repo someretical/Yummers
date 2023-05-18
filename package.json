@@ -1,18 +1,20 @@
 {
     "name": "BirthdayBot",
     "version": "0.0.1",
-    "description": "",
+    "description": "Discord bot that celebrates server members' birthdays 🎉",
     "main": "./build/index.js",
     "scripts": {
         "prisma-init": "npx prisma migrate dev --name init --schema=./src/prisma/schema.prisma",
         "test": "npx eslint . --ext .ts",
         "lint": "npx prettier --config .prettierrc --write .",
         "build": "npx tsc --build",
-        "dev-start": "ts-node -r dotenv/config index.ts",
-        "start": "node -r dotenv/config ./build/index.js"
+        "deploy-commands-dev": "ts-node -r dotenv/config ./src/deploy-commands.ts",
+        "deploy-commands": "ts-node -r dotenv/config ./src/deploy-commands.ts -p",
+        "dev": "nodemon",
+        "start": "node -r dotenv/config ."
     },
-    "author": "",
-    "license": "ISC",
+    "author": "someretical",
+    "license": "GPL-3",
     "dependencies": {
         "@prisma/client": "^4.14.0",
         "discord.js": "^14.8.0",
