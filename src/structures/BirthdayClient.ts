@@ -16,10 +16,11 @@ class BirthdayClient extends Client {
             intents: [
                 GatewayIntentBits.DirectMessageReactions,
                 GatewayIntentBits.DirectMessages,
+                GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMembers,
                 GatewayIntentBits.GuildMessageReactions,
                 GatewayIntentBits.GuildMessages,
-                GatewayIntentBits.Guilds,
+                GatewayIntentBits.GuildModeration,
                 GatewayIntentBits.MessageContent
             ],
             presence: {
