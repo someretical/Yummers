@@ -12,7 +12,7 @@ export default class InteractionCreate extends Event {
     }
 
     async run(interaction: Interaction): Promise<void> {
-        if (interaction.type !== InteractionType.ApplicationCommand) return;
+        if (!interaction.isChatInputCommand()) return;
 
         const command = this.client.commands.get(interaction.commandName);
 
