@@ -11,8 +11,8 @@
         "editor.formatOnPaste": true,
         "editor.formatOnSave": true,
         "editor.wordWrap": "wordWrapColumn",
-        "editor.wordWrapColumn": 80,
-        "editor.rulers": [80],
+        "editor.wordWrapColumn": 120,
+        "editor.rulers": [120],
         "[prisma]": {
             "editor.defaultFormatter": "Prisma.prisma"
         }
