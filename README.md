@@ -2,8 +2,11 @@
 
 ## Interactions
 
-Each birthday, give the birthday person a special role
-Send them a list of all the birthday messages
+Each birthday, give the birthday person a special role.
+
+Send them a list of all the birthday messages other users have sent. Messages are anonymous by default.
+
+### Dev considerations
 
 Before a birthday recipient is deleted, send each user who has sent the recipient any messages a copy of all the messages they have set. This serves as a backup feature
 
@@ -51,60 +54,16 @@ Alternatively, use paranoid delete and if it needs to be created again, reset th
 
 ### `viewbirthdaychannel`
 
-## Database
+## .env file
 
-Use with https://dbdiagram.io/home/
+```ini
+TOKEN="BOT_TOKEN"
 
-```
-Table Guilds {
-  id char(32) [PK]
-  birthday_role_id char(32) [not null]
-  birthday_channel_id char(32) [not null]
-}
+DATABASE_URL="DB_URL"
 
-Table Users {
-  id char(32) [PK]
-  birthday date [not null]
-}
+EMBED_COLOUR="Purple"
 
-Table PrivateMessages {
-  _id integer [PK, increment]
-  sender char(32)
-  receiver char(32)
-  year date [not null]
-  message varchar [not null]
-
-  indexes {
-    sender [type: btree]
-    receiver [type: btree]
-    year [type: btree]
-  }
-}
-
-Table PublicMessages {
-  _id integer [PK, increment]
-  sender char(32)
-  receiver char(32)
-  guild char(32)
-  year date [not null]
-  message varchar [not null]
-
-  indexes {
-    sender [type: btree]
-    receiver [type: btree]
-    guild [type: btree]
-    year [type: btree]
-  }
-}
-
-
-Ref: PrivateMessages.sender > Users.id [delete: cascade, update: cascade]
-
-Ref: PrivateMessages.receiver > Users.id [delete: cascade, update: cascade]
-
-Ref: PublicMessages.sender > Users.id [delete: cascade, update: cascade]
-
-Ref: PublicMessages.receiver > Users.id [delete: cascade, update: cascade]
-
-Ref: PublicMessages.guild > Guilds.id [delete: cascade, update: cascade]
+# Required for deploying commands
+CLIENT_ID="id"
+DEV_GUILD_ID="id"
 ```
