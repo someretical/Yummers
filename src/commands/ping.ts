@@ -1,6 +1,7 @@
 import BirthdayClient from '../structures/BirthdayClient';
 import Command from '../structures/Command';
-import { CommandInteraction, EmbedBuilder, SlashCommandBuilder } from 'discord.js';
+import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
+import { getEmbed } from '../util/EmbedHelper';
 
 export default class Ping extends Command {
     constructor(client: BirthdayClient) {
@@ -10,16 +11,15 @@ export default class Ping extends Command {
         });
     }
 
-    async run(interaction: CommandInteraction): Promise<void> {
+    async run(interaction: ChatInputCommandInteraction): Promise<void> {
         const sent = await interaction.reply({
-            embeds: [new EmbedBuilder().setColor(this.client.embedColour).setDescription('Pinging...')],
+            embeds: [getEmbed().setDescription('Pinging...')],
             fetchReply: true
         });
 
         interaction.editReply({
             embeds: [
-                new EmbedBuilder()
-                    .setColor(this.client.embedColour)
+                getEmbed()
                     .setTitle('Pong!')
                     .setDescription(
                         `Roundtrip latency: \`${sent.createdTimestamp - interaction.createdTimestamp} ms\`\n` +
