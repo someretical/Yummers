@@ -46,13 +46,7 @@ Alternatively, use paranoid delete and if it needs to be created again, reset th
 
 -   need to work out a way to figure out which one to delete
 
-### `setbirthdayrole`
-
-### `viewbirthdayrole`
-
-### `setbirthdaychannel`
-
-### `viewbirthdaychannel`
+### `settings`
 
 ## .env file
 
