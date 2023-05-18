@@ -13,10 +13,11 @@ export default class ClientReady extends Event {
 
     async run(): Promise<void> {
         console.log(`Logged in as ${this.client.user?.tag}`);
+
         console.log(
             this.client.generateInvite({
                 scopes: [OAuth2Scopes.ApplicationsCommands, OAuth2Scopes.Bot],
-                permissions: PermissionsBitField.Default
+                permissions: PermissionsBitField.Default | PermissionsBitField.Flags.ManageRoles
             })
         );
     }
