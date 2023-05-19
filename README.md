@@ -57,6 +57,8 @@ DATABASE_URL="DB_URL"
 
 EMBED_COLOUR="Purple"
 
+OWNER_ID="OWNER_ID"
+
 # Required for deploying commands
 CLIENT_ID="id"
 DEV_GUILD_ID="id"
