@@ -1,6 +1,6 @@
+import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import BirthdayClient from '../structures/BirthdayClient';
 import Command from '../structures/Command';
-import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import { getEmbed } from '../util/EmbedHelper';
 
 export default class Ping extends Command {

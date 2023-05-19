@@ -1,7 +1,7 @@
 import { REST, RESTPostAPIChatInputApplicationCommandsJSONBody, Routes } from 'discord.js';
 import fs from 'fs';
-import Command from './structures/Command';
 import path from 'path';
+import Command from './structures/Command';
 
 (async () => {
     if (

@@ -1,6 +1,6 @@
-import { Events, Interaction, InteractionType } from 'discord.js';
-import Event from '../structures/Event';
+import { Events, Interaction } from 'discord.js';
 import BirthdayClient from '../structures/BirthdayClient';
+import Event from '../structures/Event';
 
 export default class InteractionCreate extends Event {
     constructor(client: BirthdayClient) {
