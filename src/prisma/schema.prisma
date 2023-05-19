@@ -12,15 +12,21 @@ model Guild {
   birthdays_enabled   Boolean @default(false)
   birthday_role_id    String? @db.VarChar(32)
   birthday_channel_id String? @db.VarChar(32)
+  birthday_message    String  @default("🎉🎉🎉 Happy Birthday {user}!") @db.VarChar(1024)
 }
 
 model User {
-  id                      String           @id @db.VarChar(32)
-  birthday                DateTime
-  PrivateMessageSenders   PrivateMessage[] @relation(name: "PrivateMessageSenders")
-  PrivateMessageReceivers PrivateMessage[] @relation(name: "PrivateMessageReceivers")
-  PublicMessageSenders    PublicMessage[]  @relation(name: "PublicMessageSenders")
-  PublicMessageReceivers  PublicMessage[]  @relation(name: "PublicMessageReceivers")
+  id                       String           @id @db.VarChar(32)
+  birthday_start_month     Int
+  birthday_start_day       Int
+  birthday_start_hour      Int
+  birthday_start_minute    Int
+  birthday_utc_offset      Int
+  accept_birthday_messages Boolean          @default(true)
+  PrivateMessageSenders    PrivateMessage[] @relation(name: "PrivateMessageSenders")
+  PrivateMessageReceivers  PrivateMessage[] @relation(name: "PrivateMessageReceivers")
+  PublicMessageSenders     PublicMessage[]  @relation(name: "PublicMessageSenders")
+  PublicMessageReceivers   PublicMessage[]  @relation(name: "PublicMessageReceivers")
 }
 
 model PrivateMessage {
