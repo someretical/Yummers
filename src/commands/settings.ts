@@ -1,5 +1,4 @@
-import BirthdayClient from '../structures/BirthdayClient';
-import Command from '../structures/Command';
+import { Guild as PrismaGuild } from '@prisma/client';
 import {
     BaseGuildTextChannel,
     ChannelType,
@@ -11,9 +10,10 @@ import {
     SlashCommandBuilder,
     TextChannel
 } from 'discord.js';
-import { Guild as PrismaGuild } from '@prisma/client';
+import BirthdayClient from '../structures/BirthdayClient';
+import Command from '../structures/Command';
+import { DatabaseErrorType, databaseError } from '../util/Database';
 import { getEmbed } from '../util/EmbedHelper';
-import { databaseError } from '../util/Database';
 
 async function validateChannel(channel: BaseGuildTextChannel): Promise<boolean> {
     const me = await channel.guild.members.fetchMe();
@@ -44,10 +44,29 @@ export default class Settings extends Command {
                 .setDMPermission(false)
                 .addSubcommand((subcommand) => subcommand.setName('view').setDescription('View server settings'))
                 .addSubcommand((subcommand) =>
-                    subcommand.setName('enablebirthdays').setDescription('Enable birthday announcements')
+                    subcommand
+                        .setName('birthdayfeatures')
+                        .setDescription('Enable birthday announcements')
+                        .addStringOption((option) =>
+                            option
+                                .setName('status')
+                                .setDescription('Enable/disable birthday announcements')
+                                .setRequired(true)
+                                .addChoices({ name: 'Enabled', value: '1' }, { name: 'Disabled', value: '0' })
+                        )
                 )
                 .addSubcommand((subcommand) =>
-                    subcommand.setName('disablebirthdays').setDescription('Disable birthday announcements')
+                    subcommand
+                        .setName('birthdaymessage')
+                        .setDescription('Set the birthday message.')
+                        .addStringOption((option) =>
+                            option
+                                .setName('message')
+                                .setDescription('The birthday message, use {user} to mention the user')
+                                .setRequired(true)
+                                .setMinLength(1)
+                                .setMaxLength(1024)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
@@ -89,13 +108,11 @@ export default class Settings extends Command {
                         },
                         update: {},
                         create: {
-                            id: interaction.guildId as string,
-                            birthday_channel_id: null,
-                            birthday_role_id: null
+                            id: interaction.guildId as string
                         }
                     });
                 } catch (err) {
-                    return databaseError(interaction);
+                    return databaseError(err, DatabaseErrorType.Write, interaction);
                 }
 
                 const channel = guild.channels.cache.get(pGuild.birthday_channel_id ?? '0') as
@@ -129,6 +146,10 @@ export default class Settings extends Command {
                                     value: `${role?.toString() ?? 'Not set'} ${
                                         rolePermissions || !role ? '' : ' (missing permissions)'
                                     }`
+                                },
+                                {
+                                    name: 'Birthday message',
+                                    value: pGuild.birthday_message
                                 }
                             ])
                     ]
@@ -136,52 +157,54 @@ export default class Settings extends Command {
 
                 break;
             }
-            case 'enablebirthdays': {
+            case 'birthdayfeatures': {
+                const enabled = interaction.options.getString('status', true) == '1';
+
                 try {
                     await this.client.prisma.guild.upsert({
                         where: {
                             id: interaction.guildId as string
                         },
                         update: {
-                            birthdays_enabled: true
+                            birthdays_enabled: enabled
                         },
                         create: {
                             id: interaction.guildId as string,
-                            birthday_channel_id: null,
-                            birthday_role_id: null
+                            birthdays_enabled: enabled
                         }
                     });
                 } catch (err) {
-                    return databaseError(interaction);
+                    return databaseError(err, DatabaseErrorType.Write, interaction);
                 }
 
                 interaction.reply({
-                    embeds: [getEmbed().setDescription('Enabled birthday announcements')]
+                    embeds: [getEmbed().setDescription(`${enabled ? 'Enabled' : 'Disabled'} birthday announcements.`)]
                 });
 
                 break;
             }
-            case 'disablebirthdays': {
+            case 'birthdaymessage': {
+                const message = interaction.options.getString('message', true);
+
                 try {
                     await this.client.prisma.guild.upsert({
                         where: {
                             id: interaction.guildId as string
                         },
                         update: {
-                            birthdays_enabled: false
+                            birthday_message: message
                         },
                         create: {
                             id: interaction.guildId as string,
-                            birthday_channel_id: null,
-                            birthday_role_id: null
+                            birthday_message: message
                         }
                     });
                 } catch (err) {
-                    return databaseError(interaction);
+                    return databaseError(err, DatabaseErrorType.Write, interaction);
                 }
 
                 interaction.reply({
-                    embeds: [getEmbed().setDescription('Disabled birthday announcements')]
+                    embeds: [getEmbed().setDescription('Updated birthday message.')]
                 });
 
                 break;
@@ -210,15 +233,15 @@ export default class Settings extends Command {
                         },
                         create: {
                             id: interaction.guildId as string,
-                            birthday_role_id: null
+                            birthday_channel_id: channel.id
                         }
                     });
                 } catch (err) {
-                    return databaseError(interaction);
+                    return databaseError(err, DatabaseErrorType.Write, interaction);
                 }
 
                 interaction.reply({
-                    embeds: [getEmbed().setDescription(`Set the birthday channel to ${channel.toString()}`)]
+                    embeds: [getEmbed().setDescription(`Set the birthday channel to ${channel.toString()}.`)]
                 });
 
                 break;
@@ -247,15 +270,15 @@ export default class Settings extends Command {
                         },
                         create: {
                             id: interaction.guildId as string,
-                            birthday_channel_id: null
+                            birthday_role_id: role.id
                         }
                     });
                 } catch (err) {
-                    return databaseError(interaction);
+                    return databaseError(err, DatabaseErrorType.Write, interaction);
                 }
 
                 interaction.reply({
-                    embeds: [getEmbed().setDescription(`Set the birthday role to ${role.toString()}`)]
+                    embeds: [getEmbed().setDescription(`Set the birthday role to ${role.toString()}.`)]
                 });
 
                 break;
