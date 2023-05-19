@@ -1,6 +1,7 @@
-import { Events, PermissionsBitField, OAuth2Scopes } from 'discord.js';
-import Event from '../structures/Event';
+import { Events, OAuth2Scopes, PermissionsBitField } from 'discord.js';
 import BirthdayClient from '../structures/BirthdayClient';
+import Event from '../structures/Event';
+import { refreshBirthdays } from '../util/Birthday';
 
 export default class ClientReady extends Event {
     constructor(client: BirthdayClient) {
@@ -20,5 +21,10 @@ export default class ClientReady extends Event {
                 permissions: PermissionsBitField.Default | PermissionsBitField.Flags.ManageRoles
             })
         );
+
+        const interval = 15 * 60 * 1000;
+
+        await refreshBirthdays(this.client, interval, null);
+        setInterval(() => refreshBirthdays(this.client, interval, null), interval);
     }
 }

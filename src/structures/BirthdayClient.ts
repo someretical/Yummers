@@ -1,15 +1,15 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import { ActivityType, Client, Collection, ColorResolvable, GatewayIntentBits } from 'discord.js';
 import { PrismaClient } from '@prisma/client';
+import { ActivityType, Client, Collection, ColorResolvable, GatewayIntentBits } from 'discord.js';
 import Command from './Command';
-import Event from './Event';
 
 class BirthdayClient extends Client {
     commands: Collection<string, Command>;
     prisma: PrismaClient;
     embedColour: ColorResolvable;
+    currentBirthdays: Map<string, Map<string, number>>;
 
     constructor() {
         super({
@@ -37,6 +37,7 @@ class BirthdayClient extends Client {
         this.commands = new Collection();
         this.prisma = new PrismaClient();
         this.embedColour = process.env.EMBED_COLOUR as ColorResolvable;
+        this.currentBirthdays = new Map();
     }
 
     async loadEvents(): Promise<void> {
