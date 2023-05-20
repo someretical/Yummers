@@ -8,25 +8,37 @@ datasource db {
 }
 
 model Guild {
-  id                  String  @id @db.VarChar(32)
-  birthdays_enabled   Boolean @default(false)
-  birthday_role_id    String? @db.VarChar(32)
-  birthday_channel_id String? @db.VarChar(32)
-  birthday_message    String  @default("🎉🎉🎉 Happy Birthday {user}!") @db.VarChar(1024)
+  id                  String      @id @db.VarChar(32)
+  birthdays_enabled   Boolean     @default(false)
+  birthday_role_id    String?     @db.VarChar(32)
+  birthday_channel_id String?     @db.VarChar(32)
+  birthday_message    String      @default("🎉🎉🎉 Happy Birthday {user}!") @db.VarChar(1024)
+  Users               GuildUser[]
 }
 
 model User {
   id                       String           @id @db.VarChar(32)
-  birthday_start_month     Int
-  birthday_start_day       Int
-  birthday_start_hour      Int
-  birthday_start_minute    Int
-  birthday_utc_offset      Int
+  birthday_utc             String           @db.Char(8)
+  // Introducing ISO 8601 BirthdayBot format
+  // 2 chars for the month, 2 chars for the day, 2 chars for the hour, 2 chars for the minute
+  // If the start window and the end window have different years, special checking is required
+  // But otherwise, the strings can be sorted lexographically which is nice
+  birthday_utc_offset      Int              @db.SmallInt
   accept_birthday_messages Boolean          @default(true)
   PrivateMessageSenders    PrivateMessage[] @relation(name: "PrivateMessageSenders")
   PrivateMessageReceivers  PrivateMessage[] @relation(name: "PrivateMessageReceivers")
   PublicMessageSenders     PublicMessage[]  @relation(name: "PublicMessageSenders")
   PublicMessageReceivers   PublicMessage[]  @relation(name: "PublicMessageReceivers")
+  Guilds                   GuildUser[]
+}
+
+model GuildUser {
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  guildId String @db.VarChar(32)
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  userId  String @db.VarChar(32)
+
+  @@id([guildId, userId])
 }
 
 model PrivateMessage {
