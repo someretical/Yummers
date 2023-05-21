@@ -43,7 +43,7 @@ export default class Eval extends Command {
             hrDiff = process.hrtime(hrStart);
         } catch (err) {
             await interaction.editReply({
-                content: `\`\`\`js\n${err}\n\`\`\``
+                content: `\`\`\`\n${err}\n\`\`\``
             });
             return;
         }
@@ -66,7 +66,7 @@ export default class Eval extends Command {
         }
     }
 
-    splitMessage(text: string, { maxLength = 20000, char = '\n', prepend = '', append = '' } = {}) {
+    splitMessage(text: string, { maxLength = 2000, char = '\n', prepend = '', append = '' } = {}) {
         if (text.length <= maxLength) return [text];
         let splitText = [text];
         if (Array.isArray(char)) {
@@ -105,7 +105,9 @@ export default class Eval extends Command {
     }
 
     makeResultMessages(result: any, hrDiff: [number, number], input = '') {
-        const inspected = this.sanitise(util.inspect(result, { depth: 0 }).replace(/!!NL!!/g, '\n'));
+        const inspected = this.sanitise(
+            util.inspect(result, { depth: 2, breakLength: 120, compact: true }).replace(/!!NL!!/g, '\n')
+        );
         const split = inspected.split('\n');
         const last = inspected.length - 1;
         const prependPart =
