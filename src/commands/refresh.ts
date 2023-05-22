@@ -1,6 +1,5 @@
 import { Prisma } from '@prisma/client';
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { DateTime } from 'luxon';
 import BirthdayClient from '../structures/BirthdayClient';
 import Command from '../structures/Command';
 import { refreshBirthdays } from '../util/Birthday';
@@ -51,7 +50,7 @@ export default class Refresh extends Command {
         switch (interaction.options.getSubcommand()) {
             case 'birthdays': {
                 const guildId = interaction.options.getString('guildid') || interaction.guildId;
-                const userId = interaction.options.getString('userid') || null;
+                const userId = interaction.options.getString('userid');
                 const interval = interaction.options.getInteger('interval') || 24 * 60 * 60 * 1000 - 60 * 1000;
 
                 const embed = getEmbed().addFields([
@@ -73,7 +72,13 @@ export default class Refresh extends Command {
                     embeds: [embed.setDescription(`Refreshing birthdays with following arguments:`)]
                 });
 
-                await refreshBirthdays(this.client, interval, DateTime.utc(), guildId, userId);
+                if (guildId && userId) {
+                    this.client.currentBirthdays.get(guildId)?.delete(userId);
+                } else if (guildId) {
+                    this.client.currentBirthdays.get(guildId)?.clear();
+                }
+
+                await refreshBirthdays(this.client, interval, null, userId, guildId);
 
                 await interaction.editReply({
                     embeds: [embed.setDescription(`Refreshed birthdays!`)]
