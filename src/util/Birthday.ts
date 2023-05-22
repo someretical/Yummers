@@ -1,11 +1,47 @@
-import { Prisma, Guild as PrismaGuild, User as PrismaUser } from '@prisma/client';
+import { GuildUser, Prisma } from '@prisma/client';
 import { Guild, GuildMember, NewsChannel, Role, TextChannel } from 'discord.js';
-import { DateTime, Duration } from 'luxon';
+import { DateTime, Duration, FixedOffsetZone } from 'luxon';
 import BirthdayClient from '../structures/BirthdayClient';
+
+interface SimplifiedGuild {
+    id: string;
+    birthday_channel_id: string;
+    birthday_role_id: string;
+    birthday_message: string;
+}
+
+interface ExpandedGuildUser extends GuildUser {
+    guild_id: string;
+    user_id: string;
+    guild: SimplifiedGuild;
+    user: {
+        id: string;
+    };
+}
+
+type GuildUserMap = Map<string, string[]>;
+type GuildMap = Map<string, SimplifiedGuild>;
+
+export function stringToBirthday(dateString: string, offset: number, year = 2000): DateTime {
+    const zone = FixedOffsetZone.instance(offset);
+
+    const birthday = DateTime.fromObject(
+        {
+            year: year,
+            month: parseInt(dateString.substring(0, 2)),
+            day: parseInt(dateString.substring(2, 4)),
+            hour: parseInt(dateString.substring(4, 6)),
+            minute: parseInt(dateString.substring(6))
+        },
+        { zone: zone }
+    ).plus({ minutes: zone.offset(0) });
+
+    return birthday;
+}
 
 async function celebrateUserBirthday(
     client: BirthdayClient,
-    pGuild: PrismaGuild,
+    sGuild: SimplifiedGuild,
     guild: Guild,
     role: Role,
     channel: TextChannel | NewsChannel,
@@ -19,7 +55,7 @@ async function celebrateUserBirthday(
         console.log(
             `User ${client.users.cache.get(userId)?.tag ?? userId} in guild ${
                 guild.name
-            } already has birthday role set. Skipping...`
+            } already has an entry in client.currentBirthdays.get(${guild.id}) set. Skipping...`
         );
         return;
     }
@@ -39,7 +75,7 @@ async function celebrateUserBirthday(
 
     try {
         await channel.send({
-            content: pGuild.birthday_message.replace('{user}', `<@${userId}>`)
+            content: sGuild.birthday_message.replace('{user}', `<@${userId}>`)
         });
 
         console.log(`Sent birthday message for user ${member.user.tag} in guild ${guild.name}`);
@@ -85,24 +121,24 @@ async function endUserBirthday(client: BirthdayClient, guild: Guild, role: Role,
 
 async function handleGuildBirthdays(
     client: BirthdayClient,
-    pGuild: PrismaGuild,
-    pUsers: PrismaUser[]
+    sGuild: SimplifiedGuild,
+    userIds: string[]
 ): Promise<PromiseSettledResult<void>[]> {
-    console.log(`Handling guild ${pGuild.id}`);
+    console.log(`Handling guild ${sGuild.id}`);
 
     let guild: Guild | null = null;
     let birthdayChannel: TextChannel | NewsChannel | null = null;
     let birthdayRole: Role | null = null;
 
     try {
-        guild = await client.guilds.fetch(pGuild.id);
+        guild = await client.guilds.fetch(sGuild.id);
     } catch (err) {
-        console.log(`Couldn't get guild ${pGuild.id}. Skipping...`);
+        console.log(`Couldn't get guild ${sGuild.id}. Skipping...`);
         return [];
     }
 
     try {
-        birthdayChannel = (await guild.channels.fetch(pGuild.birthday_channel_id as string)) as
+        birthdayChannel = (await guild.channels.fetch(sGuild.birthday_channel_id as string)) as
             | TextChannel
             | NewsChannel;
     } catch (err) {
@@ -111,7 +147,7 @@ async function handleGuildBirthdays(
     }
 
     try {
-        birthdayRole = await guild.roles.fetch(pGuild.birthday_role_id as string);
+        birthdayRole = await guild.roles.fetch(sGuild.birthday_role_id as string);
     } catch (err) {
         console.log(`Couldn't get birthday role for guild ${guild.name}. Skipping...`);
         return [];
@@ -124,8 +160,8 @@ async function handleGuildBirthdays(
     }
 
     const promises = [];
-    for (const pUser of pUsers) {
-        promises.push(celebrateUserBirthday(client, pGuild, guild, birthdayRole, birthdayChannel, pUser.id));
+    for (const userId of userIds) {
+        promises.push(celebrateUserBirthday(client, sGuild, guild, birthdayRole, birthdayChannel, userId));
     }
 
     for (const [userId, birthdayEnd] of client.currentBirthdays.get(guild.id) as Map<string, number>) {
@@ -139,10 +175,43 @@ export async function fetchUsers(
     client: BirthdayClient,
     startWindow: DateTime,
     endWindow: DateTime,
-    userId: string | null
-) {
+    userId: string | null,
+    guildId: string | null
+): Promise<ExpandedGuildUser[]> {
     const startWindowString = startWindow.toFormat('LLddHHmm');
     const endWindowString = endWindow.toFormat('LLddHHmm');
+
+    const query: Prisma.GuildUserFindManyArgs = {
+        where: {
+            guild: {
+                birthdays_enabled: true,
+                birthday_channel_id: {
+                    not: null
+                },
+                birthday_role_id: {
+                    not: null
+                }
+            },
+            user: undefined
+        },
+        select: {
+            guild: {
+                select: {
+                    id: true,
+                    birthday_channel_id: true,
+                    birthday_role_id: true,
+                    birthday_message: true
+                }
+            },
+            user: {
+                select: {
+                    id: true
+                }
+            }
+        }
+    };
+
+    if (guildId) (query.where!.guild as Prisma.GuildWhereInput).id = guildId;
 
     // We assume that the max interval is one day.
     // This means if the window crosses years, then the start must be the same day as the last day of the previous year and the end must be the same day as the first day of the next (crrrent) year.
@@ -150,93 +219,76 @@ export async function fetchUsers(
         const prevYearEndString = startWindow.endOf('year').toFormat('LLddHHmm');
         const curYearStartString = endWindow.startOf('year').toFormat('LLddHHmm');
 
-        const conditions: Prisma.UserFindManyArgs = {
-            where: {
-                OR: [
-                    {
-                        AND: [
-                            {
-                                birthday_utc: {
-                                    gte: startWindowString
-                                }
-                            },
-                            {
-                                birthday_utc: {
-                                    lte: prevYearEndString
-                                }
+        const conditions: Prisma.UserWhereInput = {
+            OR: [
+                {
+                    AND: [
+                        {
+                            birthday_utc: {
+                                gte: startWindowString
                             }
-                        ]
-                    },
-                    {
-                        AND: [
-                            {
-                                birthday_utc: {
-                                    gte: curYearStartString
-                                }
-                            },
-                            {
-                                birthday_utc: {
-                                    lte: endWindowString
-                                }
+                        },
+                        {
+                            birthday_utc: {
+                                lte: prevYearEndString
                             }
-                        ]
-                    }
-                ]
-            }
+                        }
+                    ]
+                },
+                {
+                    AND: [
+                        {
+                            birthday_utc: {
+                                gte: curYearStartString
+                            }
+                        },
+                        {
+                            birthday_utc: {
+                                lte: endWindowString
+                            }
+                        }
+                    ]
+                }
+            ]
         };
 
         if (userId) {
+            // conditions.OR[0].AND.push({ id: userId });
             (
-                ((conditions.where?.OR as Prisma.UserWhereInput[])[0] as Prisma.UserWhereInput)
-                    .AND as Prisma.UserWhereInput[]
-            ).push({ id: userId });
+                ((conditions.OR as Prisma.UserWhereInput[])[0] as Prisma.UserWhereInput).AND as Prisma.UserWhereInput[]
+            ).push({
+                id: userId
+            });
             (
-                ((conditions.where?.OR as Prisma.UserWhereInput[])[1] as Prisma.UserWhereInput)
-                    .AND as Prisma.UserWhereInput[]
-            ).push({ id: userId });
+                ((conditions.OR as Prisma.UserWhereInput[])[1] as Prisma.UserWhereInput).AND as Prisma.UserWhereInput[]
+            ).push({
+                id: userId
+            });
         }
 
-        return client.prisma.user.findMany(conditions);
+        (query.where as Prisma.GuildUserWhereInput).user = conditions;
     } else {
-        const conditions: Prisma.UserFindManyArgs = {
-            where: {
-                AND: [
-                    {
-                        birthday_utc: {
-                            gte: startWindowString
-                        }
-                    },
-                    {
-                        birthday_utc: {
-                            lte: endWindowString
-                        }
+        const conditions: Prisma.UserWhereInput = {
+            AND: [
+                {
+                    birthday_utc: {
+                        gte: startWindowString
                     }
-                ]
-            }
+                },
+                {
+                    birthday_utc: {
+                        lte: endWindowString
+                    }
+                }
+            ]
         };
 
-        if (userId) (conditions.where?.AND as Prisma.UserWhereInput[]).push({ id: userId });
+        if (userId) (conditions.AND as Prisma.UserWhereInput[]).push({ id: userId });
 
-        return client.prisma.user.findMany(conditions);
+        (query.where as Prisma.GuildUserWhereInput).user = conditions;
     }
-}
 
-async function fetchGuilds(client: BirthdayClient, guildId: string | null) {
-    const query: Prisma.GuildFindManyArgs = {
-        where: {
-            birthdays_enabled: true,
-            birthday_channel_id: {
-                not: null
-            },
-            birthday_role_id: {
-                not: null
-            }
-        }
-    };
-
-    if (guildId) (query.where as Prisma.GuildWhereInput).id = guildId;
-
-    return client.prisma.guild.findMany(query);
+    return client.prisma.guildUser.findMany(query) as Promise<ExpandedGuildUser[]>;
 }
 
 export async function refreshBirthdays(
@@ -259,32 +311,42 @@ export async function refreshBirthdays(
         `Next refresh at ${endWindow.plus(Duration.fromObject({ milliseconds: interval })).toFormat('LLLL dd HH:mm')}`
     );
 
-    let pUsers: PrismaUser[] = [];
-    let pGuilds: PrismaGuild[] = [];
+    let relos: ExpandedGuildUser[] = [];
 
     try {
-        pUsers = await fetchUsers(client, startWindow, endWindow, userId);
-        pGuilds = await fetchGuilds(client, guildId);
+        relos = await fetchUsers(client, startWindow, endWindow, userId, guildId);
     } catch (err) {
         console.log(err);
     }
 
-    console.log(`Retrieved ${pUsers.length} users from the database`);
-    console.log(`Retrieved ${pGuilds.length} guilds from the database`);
+    console.log(`Retrieved ${relos.length} elegible guild/user relationships from the database`);
 
-    if (pUsers.length !== 0) {
-        const promises = [];
-        for (const pGuild of pGuilds) {
-            promises.push(handleGuildBirthdays(client, pGuild, pUsers));
-        }
-
-        try {
-            await Promise.allSettled(promises);
-        } catch (err) {
-            console.log(err);
-        }
-    } else {
+    if (relos.length === 0) {
         console.log('No users to refresh');
+        return;
+    }
+
+    const guildUserMap: GuildUserMap = new Map();
+    const guildMap: GuildMap = new Map();
+
+    for (const relo of relos) {
+        if (!guildUserMap.has(relo.guild.id)) {
+            guildUserMap.set(relo.guild.id, []);
+            guildMap.set(relo.guild.id, relo.guild);
+        }
+
+        guildUserMap.get(relo.guild.id)!.push(relo.user.id);
+    }
+
+    const promises = [];
+    for (const [gId, userIds] of guildUserMap) {
+        promises.push(handleGuildBirthdays(client, guildMap.get(gId)!, userIds));
+    }
+
+    try {
+        await Promise.allSettled(promises);
+    } catch (err) {
+        console.log(err);
     }
 
     console.log('Finished refreshing birthdays');
