@@ -3,6 +3,7 @@ import { ChatInputCommandInteraction, Guild, SlashCommandBuilder } from 'discord
 import { DateTime, FixedOffsetZone } from 'luxon';
 import BirthdayClient from '../structures/BirthdayClient';
 import Command from '../structures/Command';
+import { stringToBirthday } from '../util/Birthday';
 import { DatabaseErrorType, databaseError } from '../util/Database';
 import { getEmbed } from '../util/EmbedHelper';
 
@@ -57,17 +58,38 @@ export default class Birthday extends Command {
                         )
                         .addIntegerOption((option) =>
                             option
-                                .setName('utchouroffset')
+                                .setName('hour')
+                                .setDescription('The hour of your birthday')
+                                .setMinValue(0)
+                                .setMaxValue(23)
+                        )
+                        .addIntegerOption((option) =>
+                            option
+                                .setName('minute')
+                                .setDescription('The minute of your birthday')
+                                .setMinValue(0)
+                                .setMaxValue(59)
+                        )
+                        .addIntegerOption((option) =>
+                            option
+                                .setName('utc-hour-offset')
                                 .setDescription('UTC hour offset')
                                 .setMinValue(-11)
                                 .setMaxValue(11)
                         )
                         .addIntegerOption((option) =>
                             option
-                                .setName('utcminoffset')
+                                .setName('utc-minute-offset')
                                 .setDescription('UTC minute offset')
                                 .setMinValue(0)
                                 .setMaxValue(59)
+                        )
+                        .addStringOption((option) =>
+                            option
+                                .setName('userid')
+                                .setDescription(
+                                    'The user to set the birthday of. Will NOT work if you are not the owner!'
+                                )
                         )
                 )
                 .addSubcommand((subcommand) =>
@@ -95,6 +117,30 @@ export default class Birthday extends Command {
                         .setName('twins')
                         .setDescription('Find people with the same birthday!')
                         .addUserOption((option) => option.setName('user').setDescription('The user to find twins for'))
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName('remove')
+                        .setDescription('Remove your birthday from this server')
+                        .addUserOption((option) =>
+                            option
+                                .setName('userid')
+                                .setDescription(
+                                    'The user to remove the birthday of. Will NOT work if you are not the owner!'
+                                )
+                        )
+                )
+                .addSubcommand((subcommand) =>
+                    subcommand
+                        .setName('removeglobal')
+                        .setDescription('Remove your birthday globally')
+                        .addStringOption((option) =>
+                            option
+                                .setName('userid')
+                                .setDescription(
+                                    'The user to remove the birthday of. Will NOT work if you are not the owner!'
+                                )
+                        )
                 )
         });
     }
@@ -127,13 +173,15 @@ export default class Birthday extends Command {
 
                 const month = interaction.options.getString('month') as string;
                 const day = interaction.options.getInteger('day') as number;
-                const hourOffset = interaction.options.getInteger('utchouroffset') ?? 0;
-                const minuteOffset = interaction.options.getInteger('utcminoffset') ?? 0;
+                const hour = interaction.options.getInteger('hour') || 0;
+                const minute = interaction.options.getInteger('minute') || 0;
+                const hourOffset = interaction.options.getInteger('utc-hour-offset') ?? 0;
+                const minuteOffset = interaction.options.getInteger('utc-minute-offset') ?? 0;
                 const offset = FixedOffsetZone.instance(
                     hourOffset * 60 + (hourOffset < 0 ? -minuteOffset : minuteOffset)
                 );
                 const birthday = DateTime.fromObject(
-                    { year: 2000, month: parseInt(month), day: day },
+                    { year: 2000, month: parseInt(month), day: day, hour: hour, minute: minute },
                     { zone: offset }
                 );
 
@@ -145,14 +193,16 @@ export default class Birthday extends Command {
                 }
 
                 const utcBirthdayString = birthday.toUTC().toFormat('LLddHHmm');
-
-                console.log(utcBirthdayString);
+                const id =
+                    (interaction.user.id === process.env.OWNER_ID
+                        ? interaction.options.getString('userid')
+                        : interaction.user.id) || interaction.user.id;
 
                 try {
                     const statements = [
                         this.client.prisma.$executeRaw`
 INSERT INTO "User" (id, birthday_utc, birthday_utc_offset)
-VALUES (${interaction.user.id}, ${utcBirthdayString}, ${offset.offset(0)})
+VALUES (${id}, ${utcBirthdayString}, ${offset.offset(0)})
 ON CONFLICT ON CONSTRAINT "User_pkey" 
 DO UPDATE SET 
     birthday_utc = ${utcBirthdayString},
@@ -166,7 +216,7 @@ DO UPDATE SET
 INSERT INTO "GuildUser" (user_id, guild_id)
 SELECT new.user_id, new.guild_id
 FROM 
-    (VALUES (${interaction.user.id}, ${interaction.guildId})) AS new(user_id, guild_id)
+    (VALUES (${id}, ${interaction.guildId})) AS new(user_id, guild_id)
 WHERE
     EXISTS (SELECT 1 FROM "Guild" WHERE "Guild".id = new.guild_id)
 ON CONFLICT DO NOTHING
@@ -182,7 +232,9 @@ ON CONFLICT DO NOTHING
                 interaction.reply({
                     embeds: [
                         getEmbed().setDescription(
-                            `Your birthday has been set to ${birthday.toFormat("LLLL d ('UTC' ZZ)")}`
+                            `${
+                                interaction.user.id === id ? 'Your' : `<@${id}>'s`
+                            } birthday has been set to ${birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")}`
                         )
                     ]
                 });
@@ -215,19 +267,7 @@ ON CONFLICT DO NOTHING
                     return;
                 }
 
-                const offset = FixedOffsetZone.instance(userData.birthday_utc_offset);
-
-                let birthday = DateTime.fromObject(
-                    {
-                        year: 2000,
-                        month: parseInt(userData.birthday_utc.substring(0, 2)),
-                        day: parseInt(userData.birthday_utc.substring(2, 4)),
-                        hour: parseInt(userData.birthday_utc.substring(4, 6)),
-                        minute: parseInt(userData.birthday_utc.substring(6))
-                    },
-                    { zone: offset }
-                );
-                birthday = birthday.plus({ minutes: offset.offset(0) });
+                const birthday = stringToBirthday(userData.birthday_utc, userData.birthday_utc_offset, 2000);
 
                 interaction.reply({
                     embeds: [
@@ -236,7 +276,7 @@ ON CONFLICT DO NOTHING
                             .addFields([
                                 {
                                     name: 'Birthday',
-                                    value: birthday.toFormat("LLLL d ('UTC' ZZ)")
+                                    value: birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")
                                 },
                                 {
                                     name: 'Messages',
@@ -260,7 +300,6 @@ ON CONFLICT DO NOTHING
                 let endWindow = startWindow.plus({ years: 1 });
 
                 if (interaction.options.getInteger('year')) {
-                    console.log(interaction.options);
                     const year = interaction.options.getInteger('year') as number;
                     startWindow = DateTime.fromObject({ year }).startOf('year');
                     endWindow = startWindow.endOf('year');
@@ -342,43 +381,27 @@ ON CONFLICT DO NOTHING
 
                 const result = (await this.client.prisma.guildUser.findMany(conditions)) as GuildUserWithUser[];
 
+                if (!result.length) {
+                    await interaction.reply({
+                        embeds: [getEmbed().setDescription('There are no upcoming birthdays :(')]
+                    });
+                    return;
+                }
+
                 const nextYearBirthdays = result.filter(({ user }) => user.birthday_utc < startWindowString);
                 const currentYearBirthdays = result.filter(({ user }) => user.birthday_utc >= startWindowString);
 
                 const strings = [];
                 for (const { user } of currentYearBirthdays) {
-                    const offset = FixedOffsetZone.instance(user.birthday_utc_offset);
+                    const birthday = stringToBirthday(user.birthday_utc, user.birthday_utc_offset, startWindow.year);
 
-                    let birthday = DateTime.fromObject(
-                        {
-                            year: startWindow.year,
-                            month: parseInt(user.birthday_utc.substring(0, 2)),
-                            day: parseInt(user.birthday_utc.substring(2, 4)),
-                            hour: parseInt(user.birthday_utc.substring(4, 6)),
-                            minute: parseInt(user.birthday_utc.substring(6))
-                        },
-                        { zone: offset }
-                    );
-                    birthday = birthday.plus({ minutes: offset.offset(0) });
-
-                    const formatted = birthday.toFormat("LLLL d yyyy ('UTC' ZZ)");
-
-                    strings.push(`<@${user.id}>: ${formatted}`);
+                    strings.push(`<@${user.id}>: ${birthday.toFormat("LLLL d h:mm a yyyy ('UTC' ZZ)")}`);
                 }
 
                 for (const { user } of nextYearBirthdays) {
-                    const offset = FixedOffsetZone.instance(user.birthday_utc_offset);
+                    const birthday = stringToBirthday(user.birthday_utc, user.birthday_utc_offset, endWindow.year);
 
-                    const birthday = DateTime.fromObject({
-                        year: endWindow.year,
-                        month: parseInt(user.birthday_utc.substring(0, 2)),
-                        day: parseInt(user.birthday_utc.substring(2, 4)),
-                        hour: parseInt(user.birthday_utc.substring(4, 6)),
-                        minute: parseInt(user.birthday_utc.substring(6))
-                    });
-
-                    const formatted = birthday.plus({ minutes: offset.offset(0) }).toFormat("LLLL d yyyy ('UTC' ZZ)");
-                    strings.push(`<@${user.id}>: ${formatted}`);
+                    strings.push(`<@${user.id}>: ${birthday.toFormat("LLLL d h:mm a yyyy ('UTC' ZZ)")}`);
                 }
 
                 const guild = interaction.guild as Guild;
@@ -439,9 +462,6 @@ ON CONFLICT DO NOTHING
                 const startWindowString = startWindow.toFormat('LLddHHmm');
                 const endWindowString = endWindow.toFormat('LLddHHmm');
 
-                console.log(startWindowString);
-                console.log(endWindowString);
-
                 const result = (await this.client.prisma.guildUser.findMany({
                     where: {
                         guild_id: interaction.guildId as string,
@@ -491,22 +511,9 @@ ON CONFLICT DO NOTHING
                 const strings = [];
 
                 for (const { user } of result) {
-                    const offset = FixedOffsetZone.instance(user.birthday_utc_offset);
+                    const birthday = stringToBirthday(user.birthday_utc, user.birthday_utc_offset, startWindow.year);
 
-                    let birthday = DateTime.fromObject(
-                        {
-                            year: startWindow.year,
-                            month: parseInt(user.birthday_utc.substring(0, 2)),
-                            day: parseInt(user.birthday_utc.substring(2, 4)),
-                            hour: parseInt(user.birthday_utc.substring(4, 6)),
-                            minute: parseInt(user.birthday_utc.substring(6))
-                        },
-                        { zone: offset }
-                    );
-                    birthday = birthday.plus({ minutes: offset.offset(0) });
-
-                    const formatted = birthday.toFormat("('UTC' ZZ)");
-                    strings.push(`<@${user.id}> ${formatted}`);
+                    strings.push(`<@${user.id}>: ${birthday.toFormat("h:mm a ('UTC' ZZ)")}`);
                 }
 
                 const guild = interaction.guild as Guild;
@@ -520,6 +527,74 @@ ON CONFLICT DO NOTHING
                             .setTitle('Birthday twins')
                             .setDescription(strings.join('\n'))
                     ]
+                });
+
+                break;
+            }
+
+            case 'remove': {
+                if (!interaction.guildId) {
+                    await interaction.reply({
+                        embeds: [getEmbed().setDescription('This command can only be used in a server!')]
+                    });
+                    return;
+                }
+
+                const userId =
+                    (interaction.user.id === process.env.OWNER_ID
+                        ? interaction.options.getString('userid')
+                        : interaction.user.id) || interaction.user.id;
+
+                try {
+                    await this.client.prisma.guildUser.delete({
+                        where: {
+                            guild_id_user_id: {
+                                guild_id: interaction.guildId,
+                                user_id: userId
+                            }
+                        }
+                    });
+                } catch (err) {
+                    return databaseError(err, DatabaseErrorType.Write, interaction);
+                }
+
+                await interaction.reply({
+                    embeds: [
+                        getEmbed().setDescription(
+                            `Removed ${
+                                userId === interaction.user.id ? 'your' : `<@${userId}>'s`
+                            } birthday from this server.`
+                        )
+                    ],
+                    ephemeral: true
+                });
+
+                break;
+            }
+
+            case 'removeglobal': {
+                const userId =
+                    (interaction.user.id === process.env.OWNER_ID
+                        ? interaction.options.getString('userid')
+                        : interaction.user.id) || interaction.user.id;
+
+                try {
+                    await this.client.prisma.user.delete({
+                        where: {
+                            id: userId
+                        }
+                    });
+                } catch (err) {
+                    return databaseError(err, DatabaseErrorType.Write, interaction);
+                }
+
+                await interaction.reply({
+                    embeds: [
+                        getEmbed().setDescription(
+                            `Removed ${userId === interaction.user.id ? 'your' : `<@${userId}>'s`} birthday globally.`
+                        )
+                    ],
+                    ephemeral: true
                 });
 
                 break;
