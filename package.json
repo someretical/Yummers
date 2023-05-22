@@ -11,7 +11,8 @@
         "deploy-commands-dev": "ts-node -r dotenv/config ./src/deploy-commands.ts",
         "deploy-commands": "ts-node -r dotenv/config ./src/deploy-commands.ts -p",
         "dev": "nodemon",
-        "start": "node -r dotenv/config ."
+        "start": "node -r dotenv/config .",
+        "deploy": "pm2 start . --exp-backoff-restart-delay=100 --name=\"yummers\" --node-args=\"-r dotenv/config\""
     },
     "author": "someretical",
     "license": "GPL-3",
