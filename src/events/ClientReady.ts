@@ -24,7 +24,7 @@ export default class ClientReady extends Event {
 
         const interval = 15 * 60 * 1000;
 
-        await refreshBirthdays(this.client, interval, null);
-        setInterval(() => refreshBirthdays(this.client, interval, null), interval);
+        await refreshBirthdays(this.client, interval);
+        setInterval(() => refreshBirthdays(this.client, interval), interval);
     }
 }
