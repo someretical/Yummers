@@ -1,7 +1,7 @@
 import { GuildUser, Prisma } from '@prisma/client';
 import { Guild, GuildMember, NewsChannel, Role, TextChannel } from 'discord.js';
 import { DateTime, Duration, FixedOffsetZone } from 'luxon';
-import BirthdayClient from '../structures/BirthdayClient';
+import Yummers from '../structures/Yummers';
 
 interface SimplifiedGuild {
     id: string;
@@ -40,7 +40,7 @@ export function stringToBirthday(dateString: string, offset: number, year = 2000
 }
 
 async function celebrateUserBirthday(
-    client: BirthdayClient,
+    client: Yummers,
     sGuild: SimplifiedGuild,
     guild: Guild,
     role: Role,
@@ -92,7 +92,7 @@ async function celebrateUserBirthday(
     }
 }
 
-async function endUserBirthday(client: BirthdayClient, guild: Guild, role: Role, userId: string) {
+async function endUserBirthday(client: Yummers, guild: Guild, role: Role, userId: string) {
     console.log(`Ending birthday for user ${client.users.cache.get(userId)?.tag ?? userId} in guild ${guild.name}`);
 
     const guildMap = client.currentBirthdays.get(guild.id) as Map<string, number>;
@@ -120,7 +120,7 @@ async function endUserBirthday(client: BirthdayClient, guild: Guild, role: Role,
 }
 
 async function handleGuildBirthdays(
-    client: BirthdayClient,
+    client: Yummers,
     sGuild: SimplifiedGuild,
     userIds: string[]
 ): Promise<PromiseSettledResult<void>[]> {
@@ -172,7 +172,7 @@ async function handleGuildBirthdays(
 }
 
 export async function fetchUsers(
-    client: BirthdayClient,
+    client: Yummers,
     startWindow: DateTime,
     endWindow: DateTime,
     userId: string | null,
@@ -292,7 +292,7 @@ export async function fetchUsers(
 }
 
 export async function refreshBirthdays(
-    client: BirthdayClient,
+    client: Yummers,
     interval: number,
     utcNow: DateTime | null = null,
     userId: string | null = null,

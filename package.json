@@ -1,5 +1,5 @@
 {
-    "name": "BirthdayBot",
+    "name": "Yummers",
     "version": "0.0.1",
     "description": "Discord bot that celebrates server members' birthdays 🎉",
     "main": "./build/index.js",

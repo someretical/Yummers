@@ -1,10 +1,10 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import BirthdayClient from '../structures/BirthdayClient';
+import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
 import { getEmbed } from '../util/EmbedHelper';
 
 export default class Ping extends Command {
-    constructor(client: BirthdayClient) {
+    constructor(client: Yummers) {
         super({
             client: client,
             builder: new SlashCommandBuilder().setName('ping').setDescription('Replies with Pong!')

@@ -10,7 +10,7 @@ import {
     SlashCommandBuilder,
     TextChannel
 } from 'discord.js';
-import BirthdayClient from '../structures/BirthdayClient';
+import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
 import { DatabaseErrorType, databaseError } from '../util/Database';
 import { getEmbed } from '../util/EmbedHelper';
@@ -34,7 +34,7 @@ async function validateRole(role: Role): Promise<boolean> {
 }
 
 export default class Settings extends Command {
-    constructor(client: BirthdayClient) {
+    constructor(client: Yummers) {
         super({
             client: client,
             builder: new SlashCommandBuilder()

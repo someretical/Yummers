@@ -1,7 +1,7 @@
 import { GuildUser, Prisma, User as PrismaUser } from '@prisma/client';
 import { ChatInputCommandInteraction, Guild, SlashCommandBuilder } from 'discord.js';
 import { DateTime, FixedOffsetZone } from 'luxon';
-import BirthdayClient from '../structures/BirthdayClient';
+import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
 import { stringToBirthday } from '../util/Birthday';
 import { DatabaseErrorType, databaseError } from '../util/Database';
@@ -18,7 +18,7 @@ interface GuildUserWithUser extends GuildUser {
 }
 
 export default class Birthday extends Command {
-    constructor(client: BirthdayClient) {
+    constructor(client: Yummers) {
         super({
             client: client,
             builder: new SlashCommandBuilder()

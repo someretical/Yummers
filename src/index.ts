@@ -1,7 +1,7 @@
-import BirthdayClient from './structures/BirthdayClient';
+import Yummers from './structures/Yummers';
 
 (async () => {
-    const client = new BirthdayClient();
+    const client = new Yummers();
     await client.loadEvents();
     await client.loadCommands();
 

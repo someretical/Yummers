@@ -1,4 +1,4 @@
-# Birthday Bot (AKA Yummers 😋)
+# Yummers 😋 (a birthday bot )
 
 ## Interactions
 

@@ -1,12 +1,12 @@
 import { Prisma } from '@prisma/client';
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import BirthdayClient from '../structures/BirthdayClient';
+import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
 import { refreshBirthdays } from '../util/Birthday';
 import { getEmbed } from '../util/EmbedHelper';
 
 export default class Refresh extends Command {
-    constructor(client: BirthdayClient) {
+    constructor(client: Yummers) {
         super({
             client: client,
             builder: new SlashCommandBuilder()

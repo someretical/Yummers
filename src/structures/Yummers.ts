@@ -5,7 +5,7 @@ import { PrismaClient } from '@prisma/client';
 import { ActivityType, Client, Collection, ColorResolvable, GatewayIntentBits } from 'discord.js';
 import Command from './Command';
 
-class BirthdayClient extends Client {
+class Yummers extends Client {
     commands: Collection<string, Command>;
     prisma: PrismaClient;
     embedColour: ColorResolvable;
@@ -101,4 +101,4 @@ class BirthdayClient extends Client {
     }
 }
 
-export default BirthdayClient;
+export default Yummers;

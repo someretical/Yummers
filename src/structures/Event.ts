@@ -1,13 +1,13 @@
-import BirthdayClient from './BirthdayClient';
+import Yummers from './Yummers';
 
 interface EventOptions {
-    client: BirthdayClient;
+    client: Yummers;
     name: string;
     once: boolean;
 }
 
 export default abstract class Event {
-    public client: BirthdayClient;
+    public client: Yummers;
     public name: string;
     public once: boolean;
 

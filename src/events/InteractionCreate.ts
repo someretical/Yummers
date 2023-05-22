@@ -1,9 +1,9 @@
 import { Events, Interaction } from 'discord.js';
-import BirthdayClient from '../structures/BirthdayClient';
+import Yummers from '../structures/Yummers';
 import Event from '../structures/Event';
 
 export default class InteractionCreate extends Event {
-    constructor(client: BirthdayClient) {
+    constructor(client: Yummers) {
         super({
             client: client,
             name: Events.InteractionCreate,

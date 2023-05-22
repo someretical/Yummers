@@ -1,6 +1,6 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import util from 'util';
-import BirthdayClient from '../structures/BirthdayClient';
+import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
 import { getEmbed } from '../util/EmbedHelper';
 
@@ -8,7 +8,7 @@ export default class Eval extends Command {
     public lastResult: any;
     public hrStart: [number, number];
 
-    constructor(client: BirthdayClient) {
+    constructor(client: Yummers) {
         super({
             client: client,
             builder: new SlashCommandBuilder()

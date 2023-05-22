@@ -3,9 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const BirthdayClient_1 = __importDefault(require("./structures/BirthdayClient"));
+const Yummers_1 = __importDefault(require("./structures/Yummers"));
 (async () => {
-    const client = new BirthdayClient_1.default();
+    const client = new Yummers_1.default();
     await client.loadEvents();
     await client.loadCommands();
     try {

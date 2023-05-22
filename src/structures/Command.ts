@@ -4,7 +4,7 @@ import {
     SlashCommandOptionsOnlyBuilder,
     SlashCommandSubcommandsOnlyBuilder
 } from 'discord.js';
-import BirthdayClient from './BirthdayClient';
+import Yummers from './Yummers';
 
 type CommandBuilder =
     | SlashCommandBuilder
@@ -13,12 +13,12 @@ type CommandBuilder =
     | Omit<SlashCommandBuilder, 'addSubcommandGroup' | 'addSubcommand'>;
 
 interface CommandOptions {
-    client: BirthdayClient;
+    client: Yummers;
     builder: CommandBuilder;
 }
 
 export default abstract class Command {
-    public client: BirthdayClient;
+    public client: Yummers;
     public builder: CommandBuilder;
 
     constructor(options: CommandOptions) {
