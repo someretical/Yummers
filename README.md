@@ -14,20 +14,7 @@ Before a guild is deleted, send the server owner a backup.
 
 Alternatively, use paranoid delete and if it needs to be created again, reset the paranoid delete flag.
 
-## Commands
-
-### `upcomingbirthdays`
-
--   for each birthday display:
-    -   username
-    -   date
-    -   time until
--   paginated menu - 10 entries at a time
-
-### `setbirthday`
-
--   takes in date as single parameter
--   user can only change their own
+## Commands to implement:
 
 ### `addbirthdaymessage`
 
@@ -46,9 +33,7 @@ Alternatively, use paranoid delete and if it needs to be created again, reset th
 
 -   need to work out a way to figure out which one to delete
 
-### `settings`
-
-## .env file
+### .env file
 
 ```ini
 TOKEN="BOT_TOKEN"
