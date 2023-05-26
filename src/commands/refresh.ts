@@ -1,9 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
-import { refreshBirthdays } from '../util/Birthday';
-import { getEmbed } from '../util/EmbedHelper';
+import Yummers from '../structures/Yummers';
+import { getEmbed } from '../util';
 
 export default class Refresh extends Command {
     constructor(client: Yummers) {
@@ -78,7 +77,8 @@ export default class Refresh extends Command {
                     this.client.currentBirthdays.get(guildId)?.clear();
                 }
 
-                await refreshBirthdays(this.client, interval, null, userId, guildId);
+                await this.client.scanExpiredBirthdays();
+                await this.client.scanNewBirthdays(interval, null, userId, guildId);
 
                 await interaction.editReply({
                     embeds: [embed.setDescription(`Refreshed birthdays!`)]
