@@ -6,8 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const discord_js_1 = require("discord.js");
 const Command_1 = __importDefault(require("../structures/Command"));
-const Birthday_1 = require("../util/Birthday");
-const EmbedHelper_1 = require("../util/EmbedHelper");
+const util_1 = require("../util");
 class Refresh extends Command_1.default {
     constructor(client) {
         super({
@@ -35,7 +34,7 @@ class Refresh extends Command_1.default {
     async run(interaction) {
         if (interaction.user.id !== process.env.OWNER_ID) {
             await interaction.reply({
-                embeds: [(0, EmbedHelper_1.getEmbed)().setDescription('You are not the owner of this bot!')]
+                embeds: [(0, util_1.getEmbed)().setDescription('You are not the owner of this bot!')]
             });
         }
         switch (interaction.options.getSubcommand()) {
@@ -43,7 +42,7 @@ class Refresh extends Command_1.default {
                 const guildId = interaction.options.getString('guildid') || interaction.guildId;
                 const userId = interaction.options.getString('userid');
                 const interval = interaction.options.getInteger('interval') || 24 * 60 * 60 * 1000 - 60 * 1000;
-                const embed = (0, EmbedHelper_1.getEmbed)().addFields([
+                const embed = (0, util_1.getEmbed)().addFields([
                     {
                         name: 'Guild ID',
                         value: !guildId ? 'All guilds' : this.client.guilds.cache.get(guildId)?.name || guildId
@@ -66,7 +65,8 @@ class Refresh extends Command_1.default {
                 else if (guildId) {
                     this.client.currentBirthdays.get(guildId)?.clear();
                 }
-                await (0, Birthday_1.refreshBirthdays)(this.client, interval, null, userId, guildId);
+                await this.client.scanExpiredBirthdays();
+                await this.client.scanNewBirthdays(interval, null, userId, guildId);
                 await interaction.editReply({
                     embeds: [embed.setDescription(`Refreshed birthdays!`)]
                 });
@@ -77,7 +77,7 @@ class Refresh extends Command_1.default {
                 const guildId = interaction.options.getString('guildid') || interaction.guildId;
                 if (!guildId && userId) {
                     await interaction.reply({
-                        embeds: [(0, EmbedHelper_1.getEmbed)().setDescription('Cannot provide userId alone!')]
+                        embeds: [(0, util_1.getEmbed)().setDescription('Cannot provide userId alone!')]
                     });
                     return;
                 }
@@ -92,7 +92,7 @@ class Refresh extends Command_1.default {
                         });
                         await interaction.editReply({
                             embeds: [
-                                (0, EmbedHelper_1.getEmbed)().setDescription(`Added guild/user relationship between ${guildId} and ${userId}!`)
+                                (0, util_1.getEmbed)().setDescription(`Added guild/user relationship between ${guildId} and ${userId}!`)
                             ]
                         });
                     }
@@ -107,7 +107,7 @@ class Refresh extends Command_1.default {
                     if (!members) {
                         await interaction.editReply({
                             embeds: [
-                                (0, EmbedHelper_1.getEmbed)().setDescription(`No members found for guild ${interaction.guild?.name ?? guildId}!`)
+                                (0, util_1.getEmbed)().setDescription(`No members found for guild ${interaction.guild?.name ?? guildId}!`)
                             ]
                         });
                         return;
@@ -139,7 +139,7 @@ ON CONFLICT DO NOTHING
                         const result = await Promise.allSettled(promises);
                         await interaction.editReply({
                             embeds: [
-                                (0, EmbedHelper_1.getEmbed)().setDescription(`Added ${result.reduce((a, b) => a + (b.status === 'fulfilled' ? b.value : 0), 0)} of ${total} potential guild/user relationships!`)
+                                (0, util_1.getEmbed)().setDescription(`Added ${result.reduce((a, b) => a + (b.status === 'fulfilled' ? b.value : 0), 0)} of ${total} potential guild/user relationships!`)
                             ]
                         });
                     }

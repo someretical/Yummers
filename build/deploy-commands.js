@@ -29,6 +29,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const Logger_1 = __importDefault(require("./structures/Logger"));
 (async () => {
     if (typeof process.env.TOKEN !== 'string' ||
         typeof process.env.CLIENT_ID !== 'string' ||
@@ -36,7 +37,7 @@ const path_1 = __importDefault(require("path"));
         throw new Error('Missing environment variables');
     const commands = [];
     const cmdPath = path_1.default.join(__dirname, 'commands');
-    console.log(`Looking for commands in ${cmdPath}`);
+    Logger_1.default.info(`Looking for commands in ${cmdPath}`);
     const inodes = fs_1.default.readdirSync(cmdPath);
     const files = inodes.filter((inode) => {
         const stat = fs_1.default.statSync(path_1.default.join(cmdPath, inode));
@@ -44,7 +45,6 @@ const path_1 = __importDefault(require("path"));
     });
     let counter = 0;
     for (const file of files) {
-        // What is the precise type of exportObj???
         try {
             const exportObj = await Promise.resolve(`${path_1.default.join(cmdPath, file)}`).then(s => __importStar(require(s)));
             const command = new exportObj.default(undefined);
@@ -52,22 +52,21 @@ const path_1 = __importDefault(require("path"));
             counter++;
         }
         catch (err) {
-            console.error(err);
+            Logger_1.default.err(`Failed to import command ${path_1.default.join(cmdPath, file)}`);
+            Logger_1.default.err(err);
         }
     }
-    console.log(`Loaded ${counter} commands`);
-    // Construct and prepare an instance of the REST module
+    Logger_1.default.info(`Loaded ${counter} commands`);
     const rest = new discord_js_1.REST().setToken(process.env.TOKEN);
     try {
-        console.log(`Started refreshing ${commands.length} application (/) commands.`);
-        // The put method is used to fully refresh all commands in the guild with the current set
+        Logger_1.default.info(`Started refreshing ${commands.length} application (/) commands.`);
         const data = await rest.put(process.argv[2] && process.argv[2] === '-p'
             ? discord_js_1.Routes.applicationCommands(process.env.CLIENT_ID)
             : discord_js_1.Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.DEV_GUILD_ID), { body: commands });
-        console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+        Logger_1.default.info(`Successfully reloaded ${data.length} application (/) commands.`);
     }
-    catch (error) {
-        // And of course, make sure you catch and log any errors!
-        console.error(error);
+    catch (err) {
+        Logger_1.default.err('Failed to reload application (/) commands.');
+        Logger_1.default.err(err);
     }
 })();

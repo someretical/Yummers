@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const Logger_1 = __importDefault(require("./structures/Logger"));
 const Yummers_1 = __importDefault(require("./structures/Yummers"));
 (async () => {
     const client = new Yummers_1.default();
@@ -12,6 +13,7 @@ const Yummers_1 = __importDefault(require("./structures/Yummers"));
         client.login(process.env.TOKEN);
     }
     catch (err) {
-        console.log(`Login error ${err}`);
+        Logger_1.default.err('Failed to login');
+        Logger_1.default.err(err);
     }
 })();

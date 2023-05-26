@@ -6,9 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const luxon_1 = require("luxon");
 const Command_1 = __importDefault(require("../structures/Command"));
-const Birthday_1 = require("../util/Birthday");
-const Database_1 = require("../util/Database");
-const EmbedHelper_1 = require("../util/EmbedHelper");
+const util_1 = require("../util");
 class Birthday extends Command_1.default {
     constructor(client) {
         super({
@@ -118,7 +116,7 @@ class Birthday extends Command_1.default {
                 const birthday = luxon_1.DateTime.fromObject({ year: 2000, month: parseInt(month), day: day, hour: hour, minute: minute }, { zone: offset });
                 if (!birthday.isValid) {
                     interaction.reply({
-                        embeds: [(0, EmbedHelper_1.getEmbed)().setDescription('Please provide a valid date!')]
+                        embeds: [(0, util_1.getEmbed)().setDescription('Please provide a valid date!')]
                     });
                     return;
                 }
@@ -153,11 +151,11 @@ ON CONFLICT DO NOTHING
                     await this.client.prisma.$transaction(statements);
                 }
                 catch (err) {
-                    return (0, Database_1.databaseError)(err, Database_1.DatabaseErrorType.Write, interaction);
+                    return (0, util_1.databaseError)(err, util_1.DatabaseErrorType.Write, interaction);
                 }
                 interaction.reply({
                     embeds: [
-                        (0, EmbedHelper_1.getEmbed)().setDescription(`${interaction.user.id === id ? 'Your' : `<@${id}>'s`} birthday has been set to ${birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")}`)
+                        (0, util_1.getEmbed)().setDescription(`${interaction.user.id === id ? 'Your' : `<@${id}>'s`} birthday has been set to ${birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")}`)
                     ]
                 });
                 break;
@@ -171,22 +169,22 @@ ON CONFLICT DO NOTHING
                     });
                 }
                 catch (err) {
-                    return (0, Database_1.databaseError)(err, Database_1.DatabaseErrorType.Read, interaction);
+                    return (0, util_1.databaseError)(err, util_1.DatabaseErrorType.Read, interaction);
                 }
                 if (!userData) {
                     interaction.reply({
                         embeds: [
-                            (0, EmbedHelper_1.getEmbed)().setDescription(user.id === interaction.user.id
+                            (0, util_1.getEmbed)().setDescription(user.id === interaction.user.id
                                 ? 'You have not set your birthday!'
                                 : 'This user has not set their birthday!')
                         ]
                     });
                     return;
                 }
-                const birthday = (0, Birthday_1.stringToBirthday)(userData.birthday_utc, userData.birthday_utc_offset, 2000);
+                const birthday = (0, util_1.stringToBirthday)(userData.birthday_utc, userData.birthday_utc_offset, 2000);
                 interaction.reply({
                     embeds: [
-                        (0, EmbedHelper_1.getEmbed)()
+                        (0, util_1.getEmbed)()
                             .setAuthor({ name: user.tag, iconURL: user.displayAvatarURL() })
                             .addFields([
                             {
@@ -205,7 +203,7 @@ ON CONFLICT DO NOTHING
             case 'upcoming': {
                 if (!interaction.guildId) {
                     await interaction.reply({
-                        embeds: [(0, EmbedHelper_1.getEmbed)().setDescription('This command can only be used in a server!')]
+                        embeds: [(0, util_1.getEmbed)().setDescription('This command can only be used in a server!')]
                     });
                     return;
                 }
@@ -290,7 +288,7 @@ ON CONFLICT DO NOTHING
                 const result = (await this.client.prisma.guildUser.findMany(conditions));
                 if (!result.length) {
                     await interaction.reply({
-                        embeds: [(0, EmbedHelper_1.getEmbed)().setDescription('There are no upcoming birthdays :(')]
+                        embeds: [(0, util_1.getEmbed)().setDescription('There are no upcoming birthdays :(')]
                     });
                     return;
                 }
@@ -298,18 +296,18 @@ ON CONFLICT DO NOTHING
                 const currentYearBirthdays = result.filter(({ user }) => user.birthday_utc >= startWindowString);
                 const strings = [];
                 for (const { user } of currentYearBirthdays) {
-                    const birthday = (0, Birthday_1.stringToBirthday)(user.birthday_utc, user.birthday_utc_offset, startWindow.year);
+                    const birthday = (0, util_1.stringToBirthday)(user.birthday_utc, user.birthday_utc_offset, startWindow.year);
                     strings.push(`<@${user.id}>: ${birthday.toFormat("LLLL d h:mm a yyyy ('UTC' ZZ)")}`);
                 }
                 for (const { user } of nextYearBirthdays) {
-                    const birthday = (0, Birthday_1.stringToBirthday)(user.birthday_utc, user.birthday_utc_offset, endWindow.year);
+                    const birthday = (0, util_1.stringToBirthday)(user.birthday_utc, user.birthday_utc_offset, endWindow.year);
                     strings.push(`<@${user.id}>: ${birthday.toFormat("LLLL d h:mm a yyyy ('UTC' ZZ)")}`);
                 }
                 const guild = interaction.guild;
                 // TODO implement some sort of pagination...
                 await interaction.reply({
                     embeds: [
-                        (0, EmbedHelper_1.getEmbed)()
+                        (0, util_1.getEmbed)()
                             .setAuthor({
                             name: guild.name,
                             iconURL: guild.iconURL()
@@ -323,7 +321,7 @@ ON CONFLICT DO NOTHING
             case 'twins': {
                 if (!interaction.guildId) {
                     await interaction.reply({
-                        embeds: [(0, EmbedHelper_1.getEmbed)().setDescription('This command can only be used in a server!')]
+                        embeds: [(0, util_1.getEmbed)().setDescription('This command can only be used in a server!')]
                     });
                     return;
                 }
@@ -335,12 +333,12 @@ ON CONFLICT DO NOTHING
                     });
                 }
                 catch (err) {
-                    return (0, Database_1.databaseError)(err, Database_1.DatabaseErrorType.Read, interaction);
+                    return (0, util_1.databaseError)(err, util_1.DatabaseErrorType.Read, interaction);
                 }
                 if (!userData) {
                     interaction.reply({
                         embeds: [
-                            (0, EmbedHelper_1.getEmbed)().setDescription(user.id === interaction.user.id
+                            (0, util_1.getEmbed)().setDescription(user.id === interaction.user.id
                                 ? 'You have not set your birthday!'
                                 : 'This user has not set their birthday!')
                         ]
@@ -395,19 +393,19 @@ ON CONFLICT DO NOTHING
                 }));
                 if (!result.length) {
                     await interaction.reply({
-                        embeds: [(0, EmbedHelper_1.getEmbed)().setDescription('There are no twins :(')]
+                        embeds: [(0, util_1.getEmbed)().setDescription('There are no twins :(')]
                     });
                     return;
                 }
                 const strings = [];
                 for (const { user } of result) {
-                    const birthday = (0, Birthday_1.stringToBirthday)(user.birthday_utc, user.birthday_utc_offset, startWindow.year);
+                    const birthday = (0, util_1.stringToBirthday)(user.birthday_utc, user.birthday_utc_offset, startWindow.year);
                     strings.push(`<@${user.id}>: ${birthday.toFormat("h:mm a ('UTC' ZZ)")}`);
                 }
                 const guild = interaction.guild;
                 await interaction.reply({
                     embeds: [
-                        (0, EmbedHelper_1.getEmbed)()
+                        (0, util_1.getEmbed)()
                             .setAuthor({
                             name: guild.name,
                             iconURL: guild.iconURL()
@@ -421,7 +419,7 @@ ON CONFLICT DO NOTHING
             case 'remove': {
                 if (!interaction.guildId) {
                     await interaction.reply({
-                        embeds: [(0, EmbedHelper_1.getEmbed)().setDescription('This command can only be used in a server!')]
+                        embeds: [(0, util_1.getEmbed)().setDescription('This command can only be used in a server!')]
                     });
                     return;
                 }
@@ -439,11 +437,11 @@ ON CONFLICT DO NOTHING
                     });
                 }
                 catch (err) {
-                    return (0, Database_1.databaseError)(err, Database_1.DatabaseErrorType.Write, interaction);
+                    return (0, util_1.databaseError)(err, util_1.DatabaseErrorType.Write, interaction);
                 }
                 await interaction.reply({
                     embeds: [
-                        (0, EmbedHelper_1.getEmbed)().setDescription(`Removed ${userId === interaction.user.id ? 'your' : `<@${userId}>'s`} birthday from this server.`)
+                        (0, util_1.getEmbed)().setDescription(`Removed ${userId === interaction.user.id ? 'your' : `<@${userId}>'s`} birthday from this server.`)
                     ],
                     ephemeral: true
                 });
@@ -461,11 +459,11 @@ ON CONFLICT DO NOTHING
                     });
                 }
                 catch (err) {
-                    return (0, Database_1.databaseError)(err, Database_1.DatabaseErrorType.Write, interaction);
+                    return (0, util_1.databaseError)(err, util_1.DatabaseErrorType.Write, interaction);
                 }
                 await interaction.reply({
                     embeds: [
-                        (0, EmbedHelper_1.getEmbed)().setDescription(`Removed ${userId === interaction.user.id ? 'your' : `<@${userId}>'s`} birthday globally.`)
+                        (0, util_1.getEmbed)().setDescription(`Removed ${userId === interaction.user.id ? 'your' : `<@${userId}>'s`} birthday globally.`)
                     ],
                     ephemeral: true
                 });

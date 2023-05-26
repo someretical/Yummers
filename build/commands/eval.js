@@ -6,7 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const util_1 = __importDefault(require("util"));
 const Command_1 = __importDefault(require("../structures/Command"));
-const EmbedHelper_1 = require("../util/EmbedHelper");
+const util_2 = require("../util");
 class Eval extends Command_1.default {
     lastResult;
     hrStart;
@@ -24,7 +24,7 @@ class Eval extends Command_1.default {
     async run(interaction) {
         if (interaction.user.id !== process.env.OWNER_ID) {
             await interaction.reply({
-                embeds: [(0, EmbedHelper_1.getEmbed)().setDescription('You are not the owner of this bot!')]
+                embeds: [(0, util_2.getEmbed)().setDescription('You are not the owner of this bot!')]
             });
             return;
         }

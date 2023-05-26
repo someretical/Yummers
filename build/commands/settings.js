@@ -5,8 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const discord_js_1 = require("discord.js");
 const Command_1 = __importDefault(require("../structures/Command"));
-const Database_1 = require("../util/Database");
-const EmbedHelper_1 = require("../util/EmbedHelper");
+const util_1 = require("../util");
 async function validateChannel(channel) {
     const me = await channel.guild.members.fetchMe();
     const permissions = channel.permissionsFor(me);
@@ -62,7 +61,7 @@ class Settings extends Command_1.default {
             if (!(await validateChannel(channel))) {
                 await interaction.reply({
                     embeds: [
-                        (0, EmbedHelper_1.getEmbed)().setDescription(`The bot does not have the required permissions in ${channel.toString()}!`)
+                        (0, util_1.getEmbed)().setDescription(`The bot does not have the required permissions in ${channel.toString()}!`)
                     ]
                 });
                 return;
@@ -73,7 +72,7 @@ class Settings extends Command_1.default {
             if (!(await validateRole(role))) {
                 await interaction.reply({
                     embeds: [
-                        (0, EmbedHelper_1.getEmbed)().setDescription(`The bot does not have the required permissions to manage ${role.toString()}!`)
+                        (0, util_1.getEmbed)().setDescription(`The bot does not have the required permissions to manage ${role.toString()}!`)
                     ]
                 });
                 return;
@@ -92,7 +91,7 @@ class Settings extends Command_1.default {
             });
         }
         catch (err) {
-            return (0, Database_1.databaseError)(err, Database_1.DatabaseErrorType.Write, interaction);
+            return (0, util_1.databaseError)(err, util_1.DatabaseErrorType.Write, interaction);
         }
         const cacheChannel = guild.channels.cache.get(pGuild.birthday_channel_id ?? '0');
         const channelPermissions = channel ? await validateChannel(channel) : false;
@@ -100,14 +99,14 @@ class Settings extends Command_1.default {
         const rolePermissions = role ? await validateRole(role) : false;
         await interaction.reply({
             embeds: [
-                (0, EmbedHelper_1.getEmbed)()
+                (0, util_1.getEmbed)()
                     .setAuthor({
                     name: guild.name,
                     iconURL: guild.iconURL()
                 })
                     .addFields([
                     {
-                        name: 'Birthday announcements',
+                        name: 'Birthday features',
                         value: pGuild.birthdays_enabled ? 'Enabled' : 'Disabled'
                     },
                     {
