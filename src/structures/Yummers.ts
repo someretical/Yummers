@@ -77,7 +77,7 @@ class Yummers extends Client {
         Logger.info(`Looking for events in ${eventPath}`);
 
         const names = fs.readdirSync(eventPath);
-        const files = names.map((name) => path.join(eventPath, name)).filter((name) => fs.statSync(name).isFile());
+        const files = names.filter((name) => fs.statSync(path.join(eventPath, name)).isFile());
 
         let counter = 0;
         for (const file of files) {
@@ -88,7 +88,7 @@ class Yummers extends Client {
                 // This does not work because Event is an abstract class
                 // What would work is if we could tell typescript that default is a constructor of a concrete class that inherits from Event which is abstract.
 
-                const exportObj = await import(file);
+                const exportObj = await import(path.join(eventPath, file));
 
                 const event = new exportObj.default(this);
 
@@ -109,7 +109,7 @@ class Yummers extends Client {
         Logger.info(`Looking for commands in ${cmdPath}`);
 
         const names = fs.readdirSync(cmdPath);
-        const files = names.map((name) => path.join(cmdPath, name)).filter((name) => fs.statSync(name).isFile());
+        const files = names.filter((name) => fs.statSync(path.join(cmdPath, name)).isFile());
 
         let counter = 0;
         for (const file of files) {
