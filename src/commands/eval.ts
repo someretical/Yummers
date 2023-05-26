@@ -1,8 +1,8 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
 import util from 'util';
-import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
-import { getEmbed } from '../util/EmbedHelper';
+import Yummers from '../structures/Yummers';
+import { getEmbed } from '../util';
 
 export default class Eval extends Command {
     public lastResult: any;

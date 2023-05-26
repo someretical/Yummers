@@ -1,11 +1,9 @@
 import { GuildUser, Prisma, User as PrismaUser } from '@prisma/client';
 import { ChatInputCommandInteraction, Guild, SlashCommandBuilder } from 'discord.js';
 import { DateTime, FixedOffsetZone } from 'luxon';
-import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
-import { stringToBirthday } from '../util/Birthday';
-import { DatabaseErrorType, databaseError } from '../util/Database';
-import { getEmbed } from '../util/EmbedHelper';
+import Yummers from '../structures/Yummers';
+import { DatabaseErrorType, databaseError, getEmbed, stringToBirthday } from '../util';
 
 interface GuildUserWithUser extends GuildUser {
     guild_id: string;
@@ -226,7 +224,7 @@ ON CONFLICT DO NOTHING
 
                     await this.client.prisma.$transaction(statements);
                 } catch (err) {
-                    return databaseError(err, DatabaseErrorType.Write, interaction);
+                    return databaseError(err as Error, DatabaseErrorType.Write, interaction);
                 }
 
                 interaction.reply({
@@ -251,7 +249,7 @@ ON CONFLICT DO NOTHING
                         where: { id: user.id }
                     });
                 } catch (err) {
-                    return databaseError(err, DatabaseErrorType.Read, interaction);
+                    return databaseError(err as Error, DatabaseErrorType.Read, interaction);
                 }
 
                 if (!userData) {
@@ -437,7 +435,7 @@ ON CONFLICT DO NOTHING
                         where: { id: user.id }
                     });
                 } catch (err) {
-                    return databaseError(err, DatabaseErrorType.Read, interaction);
+                    return databaseError(err as Error, DatabaseErrorType.Read, interaction);
                 }
 
                 if (!userData) {
@@ -555,7 +553,7 @@ ON CONFLICT DO NOTHING
                         }
                     });
                 } catch (err) {
-                    return databaseError(err, DatabaseErrorType.Write, interaction);
+                    return databaseError(err as Error, DatabaseErrorType.Write, interaction);
                 }
 
                 await interaction.reply({
@@ -585,7 +583,7 @@ ON CONFLICT DO NOTHING
                         }
                     });
                 } catch (err) {
-                    return databaseError(err, DatabaseErrorType.Write, interaction);
+                    return databaseError(err as Error, DatabaseErrorType.Write, interaction);
                 }
 
                 await interaction.reply({

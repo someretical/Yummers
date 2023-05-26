@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
-import { getEmbed } from '../util/EmbedHelper';
+import Yummers from '../structures/Yummers';
+import { getEmbed } from '../util';
 
 export default class Ping extends Command {
     constructor(client: Yummers) {

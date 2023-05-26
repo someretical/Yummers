@@ -1,3 +1,4 @@
+import Logger from './structures/Logger';
 import Yummers from './structures/Yummers';
 
 (async () => {
@@ -8,6 +9,7 @@ import Yummers from './structures/Yummers';
     try {
         client.login(process.env.TOKEN);
     } catch (err) {
-        console.log(`Login error ${err}`);
+        Logger.err('Failed to login');
+        Logger.err(err as Error);
     }
 })();

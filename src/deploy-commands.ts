@@ -1,7 +1,9 @@
 import { REST, RESTPostAPIChatInputApplicationCommandsJSONBody, Routes } from 'discord.js';
+
 import fs from 'fs';
 import path from 'path';
 import Command from './structures/Command';
+import Logger from './structures/Logger';
 
 (async () => {
     if (
@@ -14,7 +16,7 @@ import Command from './structures/Command';
     const commands: RESTPostAPIChatInputApplicationCommandsJSONBody[] = [];
 
     const cmdPath = path.join(__dirname, 'commands');
-    console.log(`Looking for commands in ${cmdPath}`);
+    Logger.info(`Looking for commands in ${cmdPath}`);
 
     const inodes = fs.readdirSync(cmdPath);
     const files = inodes.filter((inode) => {
@@ -24,7 +26,6 @@ import Command from './structures/Command';
 
     let counter = 0;
     for (const file of files) {
-        // What is the precise type of exportObj???
         try {
             const exportObj = await import(path.join(cmdPath, file));
             const command: Command = new exportObj.default(undefined);
@@ -32,19 +33,18 @@ import Command from './structures/Command';
             commands.push(command.builder.toJSON());
             counter++;
         } catch (err) {
-            console.error(err);
+            Logger.err(`Failed to import command ${path.join(cmdPath, file)}`);
+            Logger.err(err as Error);
         }
     }
 
-    console.log(`Loaded ${counter} commands`);
+    Logger.info(`Loaded ${counter} commands`);
 
-    // Construct and prepare an instance of the REST module
     const rest = new REST().setToken(process.env.TOKEN);
 
     try {
-        console.log(`Started refreshing ${commands.length} application (/) commands.`);
+        Logger.info(`Started refreshing ${commands.length} application (/) commands.`);
 
-        // The put method is used to fully refresh all commands in the guild with the current set
         const data: any = await rest.put(
             process.argv[2] && process.argv[2] === '-p'
                 ? Routes.applicationCommands(process.env.CLIENT_ID)
@@ -52,9 +52,9 @@ import Command from './structures/Command';
             { body: commands }
         );
 
-        console.log(`Successfully reloaded ${data.length} application (/) commands.`);
-    } catch (error) {
-        // And of course, make sure you catch and log any errors!
-        console.error(error);
+        Logger.info(`Successfully reloaded ${data.length} application (/) commands.`);
+    } catch (err) {
+        Logger.err('Failed to reload application (/) commands.');
+        Logger.err(err as Error);
     }
 })();

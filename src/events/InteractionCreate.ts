@@ -1,6 +1,7 @@
 import { Events, Interaction } from 'discord.js';
-import Yummers from '../structures/Yummers';
 import Event from '../structures/Event';
+import Logger from '../structures/Logger';
+import Yummers from '../structures/Yummers';
 
 export default class InteractionCreate extends Event {
     constructor(client: Yummers) {
@@ -20,8 +21,14 @@ export default class InteractionCreate extends Event {
 
         try {
             await command.run(interaction);
-        } catch (error) {
-            console.error(error);
+        } catch (err) {
+            Logger.err(
+                `Failed to run command ${command.builder.name} in ${interaction.guild?.name || 'DMs'} from ${
+                    interaction.user.tag
+                }`
+            );
+            Logger.err(err as Error);
+
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp({
                     content: 'There was an error while executing this command!',

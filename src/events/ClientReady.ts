@@ -1,7 +1,7 @@
 import { Events, OAuth2Scopes, PermissionsBitField } from 'discord.js';
-import Yummers from '../structures/Yummers';
 import Event from '../structures/Event';
-import { refreshBirthdays } from '../util/Birthday';
+import Logger from '../structures/Logger';
+import Yummers from '../structures/Yummers';
 
 export default class ClientReady extends Event {
     constructor(client: Yummers) {
@@ -12,19 +12,20 @@ export default class ClientReady extends Event {
         });
     }
 
-    async run(): Promise<void> {
-        console.log(`Logged in as ${this.client.user?.tag}`);
-
-        console.log(
-            this.client.generateInvite({
-                scopes: [OAuth2Scopes.ApplicationsCommands, OAuth2Scopes.Bot],
-                permissions: PermissionsBitField.Default | PermissionsBitField.Flags.ManageRoles
-            })
-        );
+    async run() {
+        Logger.info(`Logged in as ${this.client.user?.tag}`);
+        const invite = this.client.generateInvite({
+            scopes: [OAuth2Scopes.ApplicationsCommands, OAuth2Scopes.Bot],
+            permissions: PermissionsBitField.Default | PermissionsBitField.Flags.ManageRoles
+        });
+        Logger.info(`Invite link: ${invite}`);
 
         const interval = 15 * 60 * 1000;
 
-        await refreshBirthdays(this.client, interval);
-        setInterval(() => refreshBirthdays(this.client, interval), interval);
+        await this.client.scanNewBirthdays(interval);
+        setInterval(async () => {
+            await this.client.scanExpiredBirthdays();
+            await this.client.scanNewBirthdays(interval);
+        }, interval);
     }
 }
