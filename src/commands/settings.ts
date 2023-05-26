@@ -10,10 +10,9 @@ import {
     SlashCommandBuilder,
     TextChannel
 } from 'discord.js';
-import Yummers from '../structures/Yummers';
 import Command from '../structures/Command';
-import { DatabaseErrorType, databaseError } from '../util/Database';
-import { getEmbed } from '../util/EmbedHelper';
+import Yummers from '../structures/Yummers';
+import { DatabaseErrorType, databaseError, getEmbed } from '../util';
 
 async function validateChannel(channel: BaseGuildTextChannel): Promise<boolean> {
     const me = await channel.guild.members.fetchMe();
@@ -139,7 +138,7 @@ export default class Settings extends Command {
                 create: copy as CreateObject
             });
         } catch (err) {
-            return databaseError(err, DatabaseErrorType.Write, interaction);
+            return databaseError(err as Error, DatabaseErrorType.Write, interaction);
         }
 
         const cacheChannel = guild.channels.cache.get(pGuild.birthday_channel_id ?? '0') as
@@ -159,7 +158,7 @@ export default class Settings extends Command {
                     })
                     .addFields([
                         {
-                            name: 'Birthday announcements',
+                            name: 'Birthday features',
                             value: pGuild.birthdays_enabled ? 'Enabled' : 'Disabled'
                         },
                         {
