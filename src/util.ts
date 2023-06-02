@@ -36,3 +36,7 @@ export function stringToBirthday(dateString: string, offset: number, year = 2000
 
     return birthday;
 }
+
+export function paginate<T>(array: Array<T>, pageSize: number, pageNumber: number) {
+    return array.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
+}
