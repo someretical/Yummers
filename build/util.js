@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stringToBirthday = exports.getEmbed = exports.databaseError = exports.DatabaseErrorType = void 0;
+exports.paginate = exports.stringToBirthday = exports.getEmbed = exports.databaseError = exports.DatabaseErrorType = void 0;
 const discord_js_1 = require("discord.js");
 const luxon_1 = require("luxon");
 const Logger_1 = __importDefault(require("./structures/Logger"));
@@ -36,3 +36,7 @@ function stringToBirthday(dateString, offset, year = 2000) {
     return birthday;
 }
 exports.stringToBirthday = stringToBirthday;
+function paginate(array, pageSize, pageNumber) {
+    return array.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
+}
+exports.paginate = paginate;

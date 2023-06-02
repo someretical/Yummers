@@ -7,6 +7,7 @@ const discord_js_1 = require("discord.js");
 const luxon_1 = require("luxon");
 const Command_1 = __importDefault(require("../structures/Command"));
 const util_1 = require("../util");
+const PAGE_SIZE = 15;
 class Birthday extends Command_1.default {
     constructor(client) {
         super({
@@ -14,6 +15,7 @@ class Birthday extends Command_1.default {
             builder: new discord_js_1.SlashCommandBuilder()
                 .setName('birthday')
                 .setDescription('All about birthdays')
+                .setDMPermission(false)
                 .addSubcommand((subcommand) => subcommand
                 .setName('set')
                 .setDescription('Set your birthday')
@@ -62,11 +64,13 @@ class Birthday extends Command_1.default {
                 .setName('year')
                 .setDescription('The year to get upcoming birthdays for')
                 .setMinValue(1970)
-                .setMaxValue(2100)))
+                .setMaxValue(2100))
+                .addIntegerOption((option) => option.setName('page').setDescription('The page to get').setMinValue(1)))
                 .addSubcommand((subcommand) => subcommand
                 .setName('twins')
                 .setDescription('Find people with the same birthday!')
-                .addUserOption((option) => option.setName('user').setDescription('The user to find twins for')))
+                .addUserOption((option) => option.setName('user').setDescription('The user to find twins for'))
+                .addIntegerOption((option) => option.setName('page').setDescription('The page to get').setMinValue(1)))
                 .addSubcommand((subcommand) => subcommand
                 .setName('remove')
                 .setDescription('Remove your birthday from this server')
@@ -78,7 +82,11 @@ class Birthday extends Command_1.default {
                 .setDescription('Remove your birthday globally')
                 .addStringOption((option) => option
                 .setName('userid')
-                .setDescription('The user to remove the birthday of. Will NOT work if you are not the owner!')))
+                .setDescription('The user to remove the birthday of. Will NOT work if you are not the owner!'))),
+            throttling: {
+                usages: 1,
+                duration: 10000
+            }
         });
     }
     async run(interaction) {
@@ -90,7 +98,7 @@ class Birthday extends Command_1.default {
                 The bot will have to celebrate their birthday at 14:00 UTC+00:00 on the 4th Jan.
                 The role will have to be removed at 14:00 UTC+00:00 on the 5th Jan.
 
-                Taken to the extrem, if the user's birthday is the 5th Jan UTC+11:59.
+                Taken to the extreme, if the user's birthday is the 5th Jan UTC+11:59.
                 The bot will have to celebrate their birthday at 11:59 UTC+00:00 on the 4th Jan.
 
                 Assuming the user's birthday is on the 5th of Jan UTC-10:00.
@@ -164,8 +172,23 @@ ON CONFLICT DO NOTHING
                 const user = interaction.options.getUser('user') ?? interaction.user;
                 let userData = null;
                 try {
-                    userData = await this.client.prisma.user.findUnique({
-                        where: { id: user.id }
+                    userData = await this.client.prisma.guildUser.findUnique({
+                        where: {
+                            guild_id_user_id: {
+                                guild_id: interaction.guildId,
+                                user_id: user.id
+                            }
+                        },
+                        select: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    birthday_utc: true,
+                                    birthday_utc_offset: true,
+                                    accept_birthday_messages: true
+                                }
+                            }
+                        }
                     });
                 }
                 catch (err) {
@@ -181,7 +204,7 @@ ON CONFLICT DO NOTHING
                     });
                     return;
                 }
-                const birthday = (0, util_1.stringToBirthday)(userData.birthday_utc, userData.birthday_utc_offset, 2000);
+                const birthday = (0, util_1.stringToBirthday)(userData.user.birthday_utc, userData.user.birthday_utc_offset, 2000);
                 interaction.reply({
                     embeds: [
                         (0, util_1.getEmbed)()
@@ -193,7 +216,7 @@ ON CONFLICT DO NOTHING
                             },
                             {
                                 name: 'Messages',
-                                value: userData.accept_birthday_messages ? 'Enabled' : 'Disabled'
+                                value: userData.user.accept_birthday_messages ? 'Enabled' : 'Disabled'
                             }
                         ])
                     ]
@@ -201,12 +224,6 @@ ON CONFLICT DO NOTHING
                 break;
             }
             case 'upcoming': {
-                if (!interaction.guildId) {
-                    await interaction.reply({
-                        embeds: [(0, util_1.getEmbed)().setDescription('This command can only be used in a server!')]
-                    });
-                    return;
-                }
                 let startWindow = luxon_1.DateTime.utc();
                 let endWindow = startWindow.plus({ years: 1 });
                 if (interaction.options.getInteger('year')) {
@@ -303,8 +320,17 @@ ON CONFLICT DO NOTHING
                     const birthday = (0, util_1.stringToBirthday)(user.birthday_utc, user.birthday_utc_offset, endWindow.year);
                     strings.push(`<@${user.id}>: ${birthday.toFormat("LLLL d h:mm a yyyy ('UTC' ZZ)")}`);
                 }
+                // TODO somehow filter out wrong feb 29th birthdays
                 const guild = interaction.guild;
-                // TODO implement some sort of pagination...
+                const page = interaction.options.getInteger('page') || 1;
+                const total = Math.ceil(strings.length / PAGE_SIZE);
+                const chunk = (0, util_1.paginate)(strings, PAGE_SIZE, page);
+                if (!chunk.length) {
+                    await interaction.reply({
+                        embeds: [(0, util_1.getEmbed)().setDescription(`Please enter a page in the range 1-${total} inclusive!`)]
+                    });
+                    return;
+                }
                 await interaction.reply({
                     embeds: [
                         (0, util_1.getEmbed)()
@@ -312,19 +338,14 @@ ON CONFLICT DO NOTHING
                             name: guild.name,
                             iconURL: guild.iconURL()
                         })
-                            .setTitle('Upcoming birthdays')
-                            .setDescription(strings.join('\n'))
+                            .setTitle(`Upcoming birthdays (${strings.length})`)
+                            .setDescription(chunk.join('\n'))
+                            .setFooter({ text: `Page ${page} of ${total}` })
                     ]
                 });
                 break;
             }
             case 'twins': {
-                if (!interaction.guildId) {
-                    await interaction.reply({
-                        embeds: [(0, util_1.getEmbed)().setDescription('This command can only be used in a server!')]
-                    });
-                    return;
-                }
                 const user = interaction.options.getUser('user') ?? interaction.user;
                 let userData = null;
                 try {
@@ -403,6 +424,15 @@ ON CONFLICT DO NOTHING
                     strings.push(`<@${user.id}>: ${birthday.toFormat("h:mm a ('UTC' ZZ)")}`);
                 }
                 const guild = interaction.guild;
+                const page = interaction.options.getInteger('page') || 1;
+                const total = Math.ceil(strings.length / PAGE_SIZE);
+                const chunk = (0, util_1.paginate)(strings, PAGE_SIZE, page);
+                if (!chunk.length) {
+                    await interaction.reply({
+                        embeds: [(0, util_1.getEmbed)().setDescription(`Please enter a page in the range 1-${total} inclusive!`)]
+                    });
+                    return;
+                }
                 await interaction.reply({
                     embeds: [
                         (0, util_1.getEmbed)()
@@ -410,19 +440,14 @@ ON CONFLICT DO NOTHING
                             name: guild.name,
                             iconURL: guild.iconURL()
                         })
-                            .setTitle('Birthday twins')
-                            .setDescription(strings.join('\n'))
+                            .setTitle(`Birthday twins (${strings.length})`)
+                            .setDescription(chunk.join('\n'))
+                            .setFooter({ text: `Page ${page} of ${total}` })
                     ]
                 });
                 break;
             }
             case 'remove': {
-                if (!interaction.guildId) {
-                    await interaction.reply({
-                        embeds: [(0, util_1.getEmbed)().setDescription('This command can only be used in a server!')]
-                    });
-                    return;
-                }
                 const userId = (interaction.user.id === process.env.OWNER_ID
                     ? interaction.options.getString('userid')
                     : interaction.user.id) || interaction.user.id;

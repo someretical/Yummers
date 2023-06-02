@@ -28,7 +28,11 @@ class Refresh extends Command_1.default {
                 .setName('guilduser')
                 .setDescription('Refresh guild/user relationships')
                 .addStringOption((option) => option.setName('userid').setDescription('Refresh a specific user'))
-                .addStringOption((option) => option.setName('guildid').setDescription('Refresh a specific guild')))
+                .addStringOption((option) => option.setName('guildid').setDescription('Refresh a specific guild'))),
+            throttling: {
+                usages: 0,
+                duration: 0
+            }
         });
     }
     async run(interaction) {

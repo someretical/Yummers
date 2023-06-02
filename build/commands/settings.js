@@ -40,7 +40,11 @@ class Settings extends Command_1.default {
                 .setName('channel')
                 .setDescription('The channel to send birthday announcements to')
                 .addChannelTypes(discord_js_1.ChannelType.GuildText, discord_js_1.ChannelType.GuildAnnouncement))
-                .addRoleOption((option) => option.setName('role').setDescription('The role to give to users on their birthday'))
+                .addRoleOption((option) => option.setName('role').setDescription('The role to give to users on their birthday')),
+            throttling: {
+                usages: 1,
+                duration: 5000
+            }
         });
     }
     async run(interaction) {

@@ -16,7 +16,11 @@ class Eval extends Command_1.default {
             builder: new discord_js_1.SlashCommandBuilder()
                 .setName('eval')
                 .setDescription('Evaluate JavaScript!')
-                .addStringOption((option) => option.setName('code').setDescription('The code to evaluate').setRequired(true))
+                .addStringOption((option) => option.setName('code').setDescription('The code to evaluate').setRequired(true)),
+            throttling: {
+                usages: 0,
+                duration: 0
+            }
         });
         this.lastResult = null;
         this.hrStart = [0, 0];

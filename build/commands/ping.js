@@ -10,7 +10,11 @@ class Ping extends Command_1.default {
     constructor(client) {
         super({
             client: client,
-            builder: new discord_js_1.SlashCommandBuilder().setName('ping').setDescription('Replies with Pong!')
+            builder: new discord_js_1.SlashCommandBuilder().setName('ping').setDescription('Replies with Pong!'),
+            throttling: {
+                usages: 1,
+                duration: 5000
+            }
         });
     }
     async run(interaction) {
