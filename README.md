@@ -1,10 +1,10 @@
-# Yummers 😋 (a birthday bot )
+# Yummers 😋 (a birthday bot)
 
 ## Interactions
 
-When a user has their birthday, give them a special role and make an announcement. User's can set which servers they want this announvement/role on.
+When a user has their birthday, give them a special role and make an announcement. Users can set which servers they want this announcement/role on.
 
-Users also receive a list of birthday messages other users have sent. Messages are anonymoous by default and are only delivered on the birthday. Users can disable these messages.
+Users also receive a list of birthday messages other users have sent. Messages are anonymous by default and are only delivered on the birthday. Users can disable these messages.
 
 ## Developer considerations
 
@@ -39,7 +39,7 @@ Alternatively, use paranoid delete and if it needs to be created again, reset th
 
 #### PostgreSQL
 
-```bash
+```shell
 $ yay -S postgresql
 $ sudo -iu postgres
 [postgres]$ initdb -D /var/lib/postgres/data
@@ -59,7 +59,7 @@ Example database URL: `postgresql://someretical@localhost/yummers`
 
 #### PostgreSQL
 
-```bash
+```shell
 $ sudo apt-get --purge remove postgresql
 $ sudo apt-get purge postgresql*
 $ sudo apt-get --purge remove postgresql postgresql-doc postgresql-common
@@ -116,7 +116,7 @@ DEV_GUILD_ID="id"
 
 Run the following commands:
 
-```bash
+```shell
 $ npm i
 $ npm run prisma-init
 
@@ -124,7 +124,7 @@ $ npm run prisma-init
 
 ### Deploying
 
-```bash
+```shell
 $ npm i -g pm2
 $ npm run deploy
 
@@ -137,7 +137,7 @@ $ pm2 save
 
 ### Developing
 
-```bash
+```shell
 $ npm i -g nodemon
 $ npm run dev
 ```
