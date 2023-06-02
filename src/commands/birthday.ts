@@ -3,7 +3,7 @@ import { ChatInputCommandInteraction, Guild, SlashCommandBuilder } from 'discord
 import { DateTime, FixedOffsetZone } from 'luxon';
 import Command from '../structures/Command';
 import Yummers from '../structures/Yummers';
-import { DatabaseErrorType, databaseError, getEmbed, stringToBirthday } from '../util';
+import { DatabaseErrorType, databaseError, getEmbed, paginate, stringToBirthday } from '../util';
 
 interface GuildUserWithUser extends GuildUser {
     guild_id: string;
@@ -14,6 +14,8 @@ interface GuildUserWithUser extends GuildUser {
         birthday_utc_offset: number;
     };
 }
+
+const PAGE_SIZE = 15;
 
 export default class Birthday extends Command {
     constructor(client: Yummers) {
@@ -109,12 +111,18 @@ export default class Birthday extends Command {
                                 .setMinValue(1970)
                                 .setMaxValue(2100)
                         )
+                        .addIntegerOption((option) =>
+                            option.setName('page').setDescription('The page to get').setMinValue(1)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
                         .setName('twins')
                         .setDescription('Find people with the same birthday!')
                         .addUserOption((option) => option.setName('user').setDescription('The user to find twins for'))
+                        .addIntegerOption((option) =>
+                            option.setName('page').setDescription('The page to get').setMinValue(1)
+                        )
                 )
                 .addSubcommand((subcommand) =>
                     subcommand
@@ -156,7 +164,7 @@ export default class Birthday extends Command {
                 The bot will have to celebrate their birthday at 14:00 UTC+00:00 on the 4th Jan.
                 The role will have to be removed at 14:00 UTC+00:00 on the 5th Jan.
 
-                Taken to the extrem, if the user's birthday is the 5th Jan UTC+11:59.
+                Taken to the extreme, if the user's birthday is the 5th Jan UTC+11:59.
                 The bot will have to celebrate their birthday at 11:59 UTC+00:00 on the 4th Jan.
 
                 Assuming the user's birthday is on the 5th of Jan UTC-10:00.
@@ -406,9 +414,20 @@ ON CONFLICT DO NOTHING
                     strings.push(`<@${user.id}>: ${birthday.toFormat("LLLL d h:mm a yyyy ('UTC' ZZ)")}`);
                 }
 
-                const guild = interaction.guild as Guild;
+                // TODO somehow filter out wrong feb 29th birthdays
 
-                // TODO implement some sort of pagination...
+                const guild = interaction.guild as Guild;
+                const page = interaction.options.getInteger('page') || 1;
+                const total = Math.ceil(strings.length / PAGE_SIZE);
+                const chunk = paginate(strings, PAGE_SIZE, page);
+
+                if (!chunk.length) {
+                    await interaction.reply({
+                        embeds: [getEmbed().setDescription(`Please enter a page in the range 1-${total} inclusive!`)]
+                    });
+                    return;
+                }
+
                 await interaction.reply({
                     embeds: [
                         getEmbed()
@@ -416,8 +435,9 @@ ON CONFLICT DO NOTHING
                                 name: guild.name,
                                 iconURL: guild.iconURL() as string
                             })
-                            .setTitle('Upcoming birthdays')
-                            .setDescription(strings.join('\n'))
+                            .setTitle(`Upcoming birthdays (${strings.length})`)
+                            .setDescription(chunk.join('\n'))
+                            .setFooter({ text: `Page ${page} of ${total}` })
                     ]
                 });
 
@@ -519,6 +539,17 @@ ON CONFLICT DO NOTHING
                 }
 
                 const guild = interaction.guild as Guild;
+                const page = interaction.options.getInteger('page') || 1;
+                const total = Math.ceil(strings.length / PAGE_SIZE);
+                const chunk = paginate(strings, PAGE_SIZE, page);
+
+                if (!chunk.length) {
+                    await interaction.reply({
+                        embeds: [getEmbed().setDescription(`Please enter a page in the range 1-${total} inclusive!`)]
+                    });
+                    return;
+                }
+
                 await interaction.reply({
                     embeds: [
                         getEmbed()
@@ -526,8 +557,9 @@ ON CONFLICT DO NOTHING
                                 name: guild.name,
                                 iconURL: guild.iconURL() as string
                             })
-                            .setTitle('Birthday twins')
-                            .setDescription(strings.join('\n'))
+                            .setTitle(`Birthday twins (${strings.length})`)
+                            .setDescription(chunk.join('\n'))
+                            .setFooter({ text: `Page ${page} of ${total}` })
                     ]
                 });
 
