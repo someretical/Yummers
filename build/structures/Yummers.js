@@ -241,7 +241,8 @@ class Yummers extends discord_js_1.Client {
                 },
                 user: {
                     select: {
-                        id: true
+                        id: true,
+                        birthday_utc: true
                     }
                 }
             }
@@ -287,6 +288,7 @@ class Yummers extends discord_js_1.Client {
             };
             if (userId) {
                 // conditions.OR[0].AND.push({ id: userId });
+                // This is truly a TypeScript moment
                 conditions.OR[0]
                     .AND.push({
                     id: userId
@@ -317,7 +319,14 @@ class Yummers extends discord_js_1.Client {
                 conditions.AND.push({ id: userId });
             query.where.user = conditions;
         }
-        return this.prisma.guildUser.findMany(query);
+        const expanded = await this.prisma.guildUser.findMany(query);
+        return expanded.filter(({ user }) => luxon_1.DateTime.fromObject({
+            year: user.birthday_utc < startWindowString ? endWindow.year : startWindow.year,
+            month: parseInt(user.birthday_utc.substring(0, 2)),
+            day: parseInt(user.birthday_utc.substring(2, 4)),
+            hour: parseInt(user.birthday_utc.substring(4, 6)),
+            minute: parseInt(user.birthday_utc.substring(6))
+        }).isValid);
     }
     async scanExpiredBirthdays() {
         Logger_1.default.info('\nScanning old birthdays...');

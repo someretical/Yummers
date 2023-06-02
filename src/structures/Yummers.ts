@@ -31,6 +31,7 @@ interface ExpandedGuildUser extends GuildUser {
     guild: SimplifiedGuild;
     user: {
         id: string;
+        birthday_utc: string;
     };
 }
 
@@ -300,7 +301,8 @@ class Yummers extends Client {
                 },
                 user: {
                     select: {
-                        id: true
+                        id: true,
+                        birthday_utc: true
                     }
                 }
             }
@@ -349,6 +351,7 @@ class Yummers extends Client {
 
             if (userId) {
                 // conditions.OR[0].AND.push({ id: userId });
+                // This is truly a TypeScript moment
                 (
                     ((conditions.OR as Prisma.UserWhereInput[])[0] as Prisma.UserWhereInput)
                         .AND as Prisma.UserWhereInput[]
@@ -385,7 +388,18 @@ class Yummers extends Client {
             (query.where as Prisma.GuildUserWhereInput).user = conditions;
         }
 
-        return this.prisma.guildUser.findMany(query) as Promise<ExpandedGuildUser[]>;
+        const expanded = await (this.prisma.guildUser.findMany(query) as Promise<ExpandedGuildUser[]>);
+
+        return expanded.filter(
+            ({ user }) =>
+                DateTime.fromObject({
+                    year: user.birthday_utc < startWindowString ? endWindow.year : startWindow.year,
+                    month: parseInt(user.birthday_utc.substring(0, 2)),
+                    day: parseInt(user.birthday_utc.substring(2, 4)),
+                    hour: parseInt(user.birthday_utc.substring(4, 6)),
+                    minute: parseInt(user.birthday_utc.substring(6))
+                }).isValid
+        );
     }
 
     async scanExpiredBirthdays() {
