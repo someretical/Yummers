@@ -412,7 +412,7 @@ ON CONFLICT DO NOTHING
 
                 const strings = [];
                 for (const { user } of currentYearBirthdays) {
-                    const birthday = DateTime.fromObject({
+                    let birthday = DateTime.fromObject({
                         year: startWindow.year,
                         month: parseInt(user.birthday_utc.substring(0, 2)),
                         day: parseInt(user.birthday_utc.substring(2, 4)),
@@ -420,20 +420,25 @@ ON CONFLICT DO NOTHING
                         minute: parseInt(user.birthday_utc.substring(6))
                     });
 
-                    if (birthday.isValid)
+                    if (birthday.isValid) {
+                        birthday = birthday.plus({ minutes: user.birthday_utc_offset });
                         strings.push(`<@${user.id}> - <t:${birthday.toSeconds()}:F> (<t:${birthday.toSeconds()}:R>)`);
+                    }
                 }
 
                 for (const { user } of nextYearBirthdays) {
-                    const birthday = DateTime.fromObject({
+                    let birthday = DateTime.fromObject({
                         year: endWindow.year,
                         month: parseInt(user.birthday_utc.substring(0, 2)),
                         day: parseInt(user.birthday_utc.substring(2, 4)),
                         hour: parseInt(user.birthday_utc.substring(4, 6)),
                         minute: parseInt(user.birthday_utc.substring(6))
                     });
-                    if (birthday.isValid)
+
+                    if (birthday.isValid) {
+                        birthday = birthday.plus({ minutes: user.birthday_utc_offset });
                         strings.push(`<@${user.id}> - <t:${birthday.toSeconds()}:F> (<t:${birthday.toSeconds()}:R>)`);
+                    }
                 }
 
                 if (!strings.length) {
@@ -555,12 +560,7 @@ ON CONFLICT DO NOTHING
                 for (const { user } of result) {
                     const birthday = stringToBirthday(user.birthday_utc, user.birthday_utc_offset, startWindow.year);
 
-                    if (birthday.isValid)
-                        strings.push(
-                            `<@${user.id}> - <t:${birthday.toSeconds()}:F> (UTC ${birthday.toFormat(
-                                'ZZ'
-                            )}) (<t:${birthday.toSeconds()}:R>)`
-                        );
+                    strings.push(`<@${user.id}>: ${birthday.toFormat("h:mm a ('UTC' ZZ)")}`);
                 }
 
                 const guild = interaction.guild as Guild;

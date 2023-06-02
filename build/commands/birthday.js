@@ -303,36 +303,34 @@ ON CONFLICT DO NOTHING
                     ];
                 }
                 const result = (await this.client.prisma.guildUser.findMany(conditions));
-                if (!result.length) {
-                    await interaction.reply({
-                        embeds: [(0, util_1.getEmbed)().setDescription('There are no upcoming birthdays :(')]
-                    });
-                    return;
-                }
                 const nextYearBirthdays = result.filter(({ user }) => user.birthday_utc < startWindowString);
                 const currentYearBirthdays = result.filter(({ user }) => user.birthday_utc >= startWindowString);
                 const strings = [];
                 for (const { user } of currentYearBirthdays) {
-                    const birthday = luxon_1.DateTime.fromObject({
+                    let birthday = luxon_1.DateTime.fromObject({
                         year: startWindow.year,
                         month: parseInt(user.birthday_utc.substring(0, 2)),
                         day: parseInt(user.birthday_utc.substring(2, 4)),
                         hour: parseInt(user.birthday_utc.substring(4, 6)),
                         minute: parseInt(user.birthday_utc.substring(6))
                     });
-                    if (birthday.isValid)
+                    if (birthday.isValid) {
+                        birthday = birthday.plus({ minutes: user.birthday_utc_offset });
                         strings.push(`<@${user.id}> - <t:${birthday.toSeconds()}:F> (<t:${birthday.toSeconds()}:R>)`);
+                    }
                 }
                 for (const { user } of nextYearBirthdays) {
-                    const birthday = luxon_1.DateTime.fromObject({
+                    let birthday = luxon_1.DateTime.fromObject({
                         year: endWindow.year,
                         month: parseInt(user.birthday_utc.substring(0, 2)),
                         day: parseInt(user.birthday_utc.substring(2, 4)),
                         hour: parseInt(user.birthday_utc.substring(4, 6)),
                         minute: parseInt(user.birthday_utc.substring(6))
                     });
-                    if (birthday.isValid)
+                    if (birthday.isValid) {
+                        birthday = birthday.plus({ minutes: user.birthday_utc_offset });
                         strings.push(`<@${user.id}> - <t:${birthday.toSeconds()}:F> (<t:${birthday.toSeconds()}:R>)`);
+                    }
                 }
                 if (!strings.length) {
                     await interaction.reply({
@@ -340,7 +338,6 @@ ON CONFLICT DO NOTHING
                     });
                     return;
                 }
-                // TODO somehow filter out wrong feb 29th birthdays
                 const guild = interaction.guild;
                 const page = interaction.options.getInteger('page') || 1;
                 const total = Math.ceil(strings.length / PAGE_SIZE);
@@ -441,8 +438,7 @@ ON CONFLICT DO NOTHING
                 const strings = [];
                 for (const { user } of result) {
                     const birthday = (0, util_1.stringToBirthday)(user.birthday_utc, user.birthday_utc_offset, startWindow.year);
-                    if (birthday.isValid)
-                        strings.push(`<@${user.id}> - <t:${birthday.toSeconds()}:F> (UTC ${birthday.toFormat('ZZ')}) (<t:${birthday.toSeconds()}:R>)`);
+                    strings.push(`<@${user.id}>: ${birthday.toFormat("h:mm a ('UTC' ZZ)")}`);
                 }
                 const guild = interaction.guild;
                 const page = interaction.options.getInteger('page') || 1;
