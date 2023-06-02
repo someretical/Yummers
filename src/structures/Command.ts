@@ -4,6 +4,7 @@ import {
     SlashCommandOptionsOnlyBuilder,
     SlashCommandSubcommandsOnlyBuilder
 } from 'discord.js';
+import { Throttler, ThrottlerOptions } from './Throttler';
 import Yummers from './Yummers';
 
 type CommandBuilder =
@@ -15,15 +16,18 @@ type CommandBuilder =
 interface CommandOptions {
     client: Yummers;
     builder: CommandBuilder;
+    throttling: ThrottlerOptions;
 }
 
 export default abstract class Command {
-    public client: Yummers;
-    public builder: CommandBuilder;
+    public readonly client: Yummers;
+    public readonly builder: CommandBuilder;
+    public readonly throttler: Throttler;
 
     constructor(options: CommandOptions) {
         this.client = options.client;
         this.builder = options.builder;
+        this.throttler = new Throttler(options.throttling);
     }
 
     abstract run(interaction: CommandInteraction): void;

@@ -1,7 +1,9 @@
-import { Events, Interaction } from 'discord.js';
+import { Events, Interaction, InteractionReplyOptions } from 'discord.js';
+import { Duration } from 'luxon';
 import Event from '../structures/Event';
 import Logger from '../structures/Logger';
 import Yummers from '../structures/Yummers';
+import { getEmbed } from '../util';
 
 export default class InteractionCreate extends Event {
     constructor(client: Yummers) {
@@ -19,6 +21,18 @@ export default class InteractionCreate extends Event {
 
         if (!command) return;
 
+        if (!command.throttler.check({ userId: interaction.user.id, guildId: interaction.guildId })) {
+            const timeLeft = Duration.fromMillis(command.throttler.getTimeRemaining()).toFormat(
+                "hh'h' mm'm' ss's' SSS'ms'"
+            );
+            await interaction.reply({
+                embeds: [getEmbed().setDescription(`You are being rate limited! Try again in ${timeLeft}.`)],
+                ephemeral: true
+            });
+
+            return;
+        }
+
         try {
             await command.run(interaction);
         } catch (err) {
@@ -29,16 +43,15 @@ export default class InteractionCreate extends Event {
             );
             Logger.err(err as Error);
 
+            const payload: InteractionReplyOptions = {
+                embeds: [getEmbed().setDescription('There was an error while executing this command!')],
+                ephemeral: true
+            };
+
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({
-                    content: 'There was an error while executing this command!',
-                    ephemeral: true
-                });
+                await interaction.followUp(payload);
             } else {
-                await interaction.reply({
-                    content: 'There was an error while executing this command!',
-                    ephemeral: true
-                });
+                await interaction.reply(payload);
             }
         }
     }

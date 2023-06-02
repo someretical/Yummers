@@ -7,7 +7,11 @@ export default class Ping extends Command {
     constructor(client: Yummers) {
         super({
             client: client,
-            builder: new SlashCommandBuilder().setName('ping').setDescription('Replies with Pong!')
+            builder: new SlashCommandBuilder().setName('ping').setDescription('Replies with Pong!'),
+            throttling: {
+                usages: 1,
+                duration: 5000
+            }
         });
     }
 

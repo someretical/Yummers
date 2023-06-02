@@ -139,7 +139,11 @@ export default class Birthday extends Command {
                                     'The user to remove the birthday of. Will NOT work if you are not the owner!'
                                 )
                         )
-                )
+                ),
+            throttling: {
+                usages: 1,
+                duration: 10000
+            }
         });
     }
 

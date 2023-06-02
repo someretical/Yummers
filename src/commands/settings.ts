@@ -62,7 +62,11 @@ export default class Settings extends Command {
                 )
                 .addRoleOption((option) =>
                     option.setName('role').setDescription('The role to give to users on their birthday')
-                )
+                ),
+            throttling: {
+                usages: 1,
+                duration: 5000
+            }
         });
     }
 

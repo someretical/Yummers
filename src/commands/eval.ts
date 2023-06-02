@@ -16,7 +16,11 @@ export default class Eval extends Command {
                 .setDescription('Evaluate JavaScript!')
                 .addStringOption((option) =>
                     option.setName('code').setDescription('The code to evaluate').setRequired(true)
-                )
+                ),
+            throttling: {
+                usages: 0,
+                duration: 0
+            }
         });
 
         this.lastResult = null;

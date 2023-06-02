@@ -35,7 +35,11 @@ export default class Refresh extends Command {
                         .addStringOption((option) =>
                             option.setName('guildid').setDescription('Refresh a specific guild')
                         )
-                )
+                ),
+            throttling: {
+                usages: 0,
+                duration: 0
+            }
         });
     }
 
