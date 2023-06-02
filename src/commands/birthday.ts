@@ -24,6 +24,7 @@ export default class Birthday extends Command {
             builder: new SlashCommandBuilder()
                 .setName('birthday')
                 .setDescription('All about birthdays')
+                .setDMPermission(false)
                 .addSubcommand((subcommand) =>
                     subcommand
                         .setName('set')
@@ -255,10 +256,32 @@ ON CONFLICT DO NOTHING
             case 'get': {
                 const user = interaction.options.getUser('user') ?? interaction.user;
 
-                let userData: PrismaUser | null = null;
+                let userData: {
+                    user: {
+                        id: string;
+                        birthday_utc: string;
+                        birthday_utc_offset: number;
+                        accept_birthday_messages: boolean;
+                    };
+                } | null = null;
                 try {
-                    userData = await this.client.prisma.user.findUnique({
-                        where: { id: user.id }
+                    userData = await this.client.prisma.guildUser.findUnique({
+                        where: {
+                            guild_id_user_id: {
+                                guild_id: interaction.guildId as string,
+                                user_id: user.id
+                            }
+                        },
+                        select: {
+                            user: {
+                                select: {
+                                    id: true,
+                                    birthday_utc: true,
+                                    birthday_utc_offset: true,
+                                    accept_birthday_messages: true
+                                }
+                            }
+                        }
                     });
                 } catch (err) {
                     return databaseError(err as Error, DatabaseErrorType.Read, interaction);
@@ -277,7 +300,7 @@ ON CONFLICT DO NOTHING
                     return;
                 }
 
-                const birthday = stringToBirthday(userData.birthday_utc, userData.birthday_utc_offset, 2000);
+                const birthday = stringToBirthday(userData.user.birthday_utc, userData.user.birthday_utc_offset, 2000);
 
                 interaction.reply({
                     embeds: [
@@ -290,7 +313,7 @@ ON CONFLICT DO NOTHING
                                 },
                                 {
                                     name: 'Messages',
-                                    value: userData.accept_birthday_messages ? 'Enabled' : 'Disabled'
+                                    value: userData.user.accept_birthday_messages ? 'Enabled' : 'Disabled'
                                 }
                             ])
                     ]
@@ -299,13 +322,6 @@ ON CONFLICT DO NOTHING
                 break;
             }
             case 'upcoming': {
-                if (!interaction.guildId) {
-                    await interaction.reply({
-                        embeds: [getEmbed().setDescription('This command can only be used in a server!')]
-                    });
-                    return;
-                }
-
                 let startWindow = DateTime.utc();
                 let endWindow = startWindow.plus({ years: 1 });
 
@@ -444,13 +460,6 @@ ON CONFLICT DO NOTHING
                 break;
             }
             case 'twins': {
-                if (!interaction.guildId) {
-                    await interaction.reply({
-                        embeds: [getEmbed().setDescription('This command can only be used in a server!')]
-                    });
-                    return;
-                }
-
                 const user = interaction.options.getUser('user') ?? interaction.user;
 
                 let userData: PrismaUser | null = null;
@@ -567,13 +576,6 @@ ON CONFLICT DO NOTHING
             }
 
             case 'remove': {
-                if (!interaction.guildId) {
-                    await interaction.reply({
-                        embeds: [getEmbed().setDescription('This command can only be used in a server!')]
-                    });
-                    return;
-                }
-
                 const userId =
                     (interaction.user.id === process.env.OWNER_ID
                         ? interaction.options.getString('userid')
@@ -583,7 +585,7 @@ ON CONFLICT DO NOTHING
                     await this.client.prisma.guildUser.delete({
                         where: {
                             guild_id_user_id: {
-                                guild_id: interaction.guildId,
+                                guild_id: interaction.guildId as string,
                                 user_id: userId
                             }
                         }
