@@ -8,8 +8,20 @@ const luxon_1 = require("luxon");
 const Command_1 = __importDefault(require("../structures/Command"));
 const util_1 = require("../util");
 const PAGE_SIZE = 15;
-function formatUpcoming(user, date) {
-    return `<@${user.id}> - <t:${date.toUnixInteger()}:R> @ <t:${date.toUnixInteger()}:F> ${date.toFormat("('UTC' ZZ)")}`;
+function formatUpcoming(userId, date) {
+    return `<@${userId}> - <t:${date.toUnixInteger()}:R> on <t:${date.toUnixInteger()}:F> ${date.toFormat("('UTC' ZZ)")}`;
+}
+function getNextBirthday(user) {
+    const now = luxon_1.DateTime.utc();
+    let year = user.birthday_utc < now.toFormat('LLddHHmm') ? now.year + 1 : now.year;
+    let next = (0, util_1.createOffsetDate)(user, year);
+    // This should only run for Feb 29th birthdays
+    // The i < 4 here is to stop an infinite loop if someone SOMEHOW enters a really dodgy date that breaks the system...
+    for (let i = 0; i < 4 && !next.isValid; i++) {
+        year++;
+        next = (0, util_1.createOffsetDate)(user, year);
+    }
+    return (0, util_1.stringToBirthday)(user, year);
 }
 class Birthday extends Command_1.default {
     constructor(client) {
@@ -172,9 +184,15 @@ ON CONFLICT DO NOTHING
                 catch (err) {
                     return (0, util_1.databaseError)(err, util_1.DatabaseErrorType.Write, interaction);
                 }
+                const next = getNextBirthday({
+                    id: '',
+                    birthday_utc: utcBirthdayString,
+                    birthday_utc_offset: offset.offset(0),
+                    leap_year: birthday.isInLeapYear
+                });
                 interaction.reply({
                     embeds: [
-                        (0, util_1.getEmbed)().setDescription(`${interaction.user.id === id ? 'Your' : `<@${id}>'s`} birthday has been set to ${birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")}`)
+                        (0, util_1.getEmbed)().setDescription(`${interaction.user.id === id ? 'Your' : `<@${id}>'s`} birthday has been set to ${birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")}\n\nNext birthday is <t:${next.toUnixInteger()}:R> on <t:${next.toUnixInteger()}:F>. If the time doesn't look right, perhaps play around with the UTC offset a bit.`)
                     ],
                     ephemeral: true
                 });
@@ -218,6 +236,7 @@ ON CONFLICT DO NOTHING
                     return;
                 }
                 const birthday = (0, util_1.stringToBirthday)(userData.user, userData.user.leap_year ? 2000 : 2001);
+                const next = getNextBirthday(userData.user);
                 interaction.reply({
                     embeds: [
                         (0, util_1.getEmbed)()
@@ -226,6 +245,10 @@ ON CONFLICT DO NOTHING
                             {
                                 name: 'Birthday',
                                 value: birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")
+                            },
+                            {
+                                name: 'Next Birthday',
+                                value: `<t:${next.toUnixInteger()}:F> (<t:${next.toUnixInteger()}:R>)`
                             },
                             {
                                 name: 'Messages',
@@ -321,12 +344,12 @@ ON CONFLICT DO NOTHING
                 const currentYearBirthdays = result.filter(({ user }) => user.birthday_utc >= startWindowString);
                 const strings = [];
                 for (const { user } of currentYearBirthdays) {
-                    if ((0, util_1.validateUTCBirthday)(user, startWindow.year))
-                        strings.push(formatUpcoming(user, (0, util_1.stringToBirthday)(user, startWindow.year)));
+                    if ((0, util_1.createOffsetDate)(user, startWindow.year).isValid)
+                        strings.push(formatUpcoming(user.id, (0, util_1.stringToBirthday)(user, startWindow.year)));
                 }
                 for (const { user } of nextYearBirthdays) {
-                    if ((0, util_1.validateUTCBirthday)(user, endWindow.year))
-                        strings.push(formatUpcoming(user, (0, util_1.stringToBirthday)(user, endWindow.year)));
+                    if ((0, util_1.createOffsetDate)(user, endWindow.year).isValid)
+                        strings.push(formatUpcoming(user.id, (0, util_1.stringToBirthday)(user, endWindow.year)));
                 }
                 if (!strings.length) {
                     await interaction.reply({

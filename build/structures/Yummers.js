@@ -31,6 +31,7 @@ const path = __importStar(require("path"));
 const client_1 = require("@prisma/client");
 const discord_js_1 = require("discord.js");
 const luxon_1 = require("luxon");
+const util_1 = require("../util");
 const Logger_1 = __importDefault(require("./Logger"));
 class Yummers extends discord_js_1.Client {
     commands;
@@ -242,7 +243,9 @@ class Yummers extends discord_js_1.Client {
                 user: {
                     select: {
                         id: true,
-                        birthday_utc: true
+                        birthday_utc: true,
+                        birthday_utc_offset: true,
+                        leap_year: true
                     }
                 }
             }
@@ -320,7 +323,9 @@ class Yummers extends discord_js_1.Client {
             query.where.user = conditions;
         }
         const expanded = await this.prisma.guildUser.findMany(query);
-        return expanded.filter(({ user: { birthday_utc } }) => luxon_1.DateTime.utc(birthday_utc < startWindowString ? endWindow.year : startWindow.year, parseInt(birthday_utc.substring(0, 2)), parseInt(birthday_utc.substring(2, 4)), parseInt(birthday_utc.substring(4, 6)), parseInt(birthday_utc.substring(6))).isValid);
+        // Filter out Feb 29ths if it is not a leap year
+        return expanded.filter(({ user }) => (0, util_1.createOffsetDate)(user, user.birthday_utc < startWindowString ? endWindow.year : startWindow.year)
+            .isValid);
     }
     async scanExpiredBirthdays() {
         Logger_1.default.info('\nScanning old birthdays...');

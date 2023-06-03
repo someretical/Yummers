@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.paginate = exports.validateUTCBirthday = exports.stringToBirthday = exports.getEmbed = exports.databaseError = exports.DatabaseErrorType = void 0;
+exports.paginate = exports.createOffsetDate = exports.stringToBirthday = exports.getEmbed = exports.databaseError = exports.DatabaseErrorType = void 0;
 const discord_js_1 = require("discord.js");
 const luxon_1 = require("luxon");
 const Logger_1 = __importDefault(require("./structures/Logger"));
@@ -76,11 +76,11 @@ function stringToBirthday(user, year) {
         .set({ year });
 }
 exports.stringToBirthday = stringToBirthday;
-function validateUTCBirthday(user, year) {
+function createOffsetDate(user, year) {
     const adjusted = luxon_1.DateTime.utc(user.leap_year ? 2000 : 2001, parseInt(user.birthday_utc.substring(0, 2)), parseInt(user.birthday_utc.substring(2, 4)), parseInt(user.birthday_utc.substring(4, 6)), parseInt(user.birthday_utc.substring(6))).plus({ minutes: user.birthday_utc_offset });
-    return luxon_1.DateTime.utc(year, adjusted.month, adjusted.day, adjusted.hour, adjusted.minute).isValid;
+    return luxon_1.DateTime.utc(year, adjusted.month, adjusted.day, adjusted.hour, adjusted.minute);
 }
-exports.validateUTCBirthday = validateUTCBirthday;
+exports.createOffsetDate = createOffsetDate;
 function paginate(array, pageSize, pageNumber) {
     return array.slice((pageNumber - 1) * pageSize, pageNumber * pageSize);
 }
