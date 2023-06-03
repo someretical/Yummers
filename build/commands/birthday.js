@@ -8,6 +8,9 @@ const luxon_1 = require("luxon");
 const Command_1 = __importDefault(require("../structures/Command"));
 const util_1 = require("../util");
 const PAGE_SIZE = 15;
+function formatUpcoming(user, date) {
+    return `<@${user.id}> - <t:${date.toUnixInteger()}:R> @ <t:${date.toUnixInteger()}:F> ${date.toFormat("('UTC' ZZ)")}`;
+}
 class Birthday extends Command_1.default {
     constructor(client) {
         super({
@@ -19,6 +22,12 @@ class Birthday extends Command_1.default {
                 .addSubcommand((subcommand) => subcommand
                 .setName('set')
                 .setDescription('Set your birthday')
+                .addIntegerOption((option) => option
+                .setName('year')
+                .setDescription('The year of your birthday')
+                .setRequired(true)
+                .setMinValue(1900)
+                .setMaxValue(9999))
                 .addStringOption((option) => option
                 .setName('month')
                 .setDescription('The month of your birthday')
@@ -43,8 +52,8 @@ class Birthday extends Command_1.default {
                 .addIntegerOption((option) => option
                 .setName('utc-hour-offset')
                 .setDescription('UTC hour offset')
-                .setMinValue(-11)
-                .setMaxValue(11))
+                .setMinValue(-14)
+                .setMaxValue(14))
                 .addIntegerOption((option) => option
                 .setName('utc-minute-offset')
                 .setDescription('UTC minute offset')
@@ -114,6 +123,7 @@ class Birthday extends Command_1.default {
 
                 The offset is still stored so that the original date can be displayed to the user.
                 */
+                const year = interaction.options.getInteger('year');
                 const month = interaction.options.getString('month');
                 const day = interaction.options.getInteger('day');
                 const hour = interaction.options.getInteger('hour') || 0;
@@ -121,7 +131,7 @@ class Birthday extends Command_1.default {
                 const hourOffset = interaction.options.getInteger('utc-hour-offset') ?? 0;
                 const minuteOffset = interaction.options.getInteger('utc-minute-offset') ?? 0;
                 const offset = luxon_1.FixedOffsetZone.instance(hourOffset * 60 + (hourOffset < 0 ? -minuteOffset : minuteOffset));
-                const birthday = luxon_1.DateTime.fromObject({ year: 2000, month: parseInt(month), day: day, hour: hour, minute: minute }, { zone: offset });
+                const birthday = luxon_1.DateTime.fromObject({ year, month: parseInt(month), day, hour, minute }, { zone: offset });
                 if (!birthday.isValid) {
                     interaction.reply({
                         embeds: [(0, util_1.getEmbed)().setDescription('Please provide a valid date!')]
@@ -135,12 +145,13 @@ class Birthday extends Command_1.default {
                 try {
                     const statements = [
                         this.client.prisma.$executeRaw `
-INSERT INTO "User" (id, birthday_utc, birthday_utc_offset)
-VALUES (${id}, ${utcBirthdayString}, ${offset.offset(0)})
+INSERT INTO "User" (id, birthday_utc, birthday_utc_offset, leap_year)
+VALUES (${id}, ${utcBirthdayString}, ${offset.offset(0)}, ${birthday.isInLeapYear})
 ON CONFLICT ON CONSTRAINT "User_pkey" 
 DO UPDATE SET 
     birthday_utc = ${utcBirthdayString},
-    birthday_utc_offset = ${offset.offset(0)}
+    birthday_utc_offset = ${offset.offset(0)},
+    leap_year = ${birthday.isInLeapYear}
 ;
 `
                     ];
@@ -164,7 +175,8 @@ ON CONFLICT DO NOTHING
                 interaction.reply({
                     embeds: [
                         (0, util_1.getEmbed)().setDescription(`${interaction.user.id === id ? 'Your' : `<@${id}>'s`} birthday has been set to ${birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")}`)
-                    ]
+                    ],
+                    ephemeral: true
                 });
                 break;
             }
@@ -185,7 +197,8 @@ ON CONFLICT DO NOTHING
                                     id: true,
                                     birthday_utc: true,
                                     birthday_utc_offset: true,
-                                    accept_birthday_messages: true
+                                    accept_birthday_messages: true,
+                                    leap_year: true
                                 }
                             }
                         }
@@ -204,7 +217,7 @@ ON CONFLICT DO NOTHING
                     });
                     return;
                 }
-                const birthday = (0, util_1.stringToBirthday)(userData.user.birthday_utc, userData.user.birthday_utc_offset, 2000);
+                const birthday = (0, util_1.stringToBirthday)(userData.user, userData.user.leap_year ? 2000 : 2001);
                 interaction.reply({
                     embeds: [
                         (0, util_1.getEmbed)()
@@ -243,7 +256,8 @@ ON CONFLICT DO NOTHING
                             select: {
                                 id: true,
                                 birthday_utc: true,
-                                birthday_utc_offset: true
+                                birthday_utc_offset: true,
+                                leap_year: true
                             }
                         }
                     },
@@ -307,30 +321,12 @@ ON CONFLICT DO NOTHING
                 const currentYearBirthdays = result.filter(({ user }) => user.birthday_utc >= startWindowString);
                 const strings = [];
                 for (const { user } of currentYearBirthdays) {
-                    let birthday = luxon_1.DateTime.fromObject({
-                        year: startWindow.year,
-                        month: parseInt(user.birthday_utc.substring(0, 2)),
-                        day: parseInt(user.birthday_utc.substring(2, 4)),
-                        hour: parseInt(user.birthday_utc.substring(4, 6)),
-                        minute: parseInt(user.birthday_utc.substring(6))
-                    });
-                    if (birthday.isValid) {
-                        birthday = birthday.plus({ minutes: user.birthday_utc_offset });
-                        strings.push(`<@${user.id}> - <t:${birthday.toSeconds()}:F> (<t:${birthday.toSeconds()}:R>)`);
-                    }
+                    if ((0, util_1.validateUTCBirthday)(user, startWindow.year))
+                        strings.push(formatUpcoming(user, (0, util_1.stringToBirthday)(user, startWindow.year)));
                 }
                 for (const { user } of nextYearBirthdays) {
-                    let birthday = luxon_1.DateTime.fromObject({
-                        year: endWindow.year,
-                        month: parseInt(user.birthday_utc.substring(0, 2)),
-                        day: parseInt(user.birthday_utc.substring(2, 4)),
-                        hour: parseInt(user.birthday_utc.substring(4, 6)),
-                        minute: parseInt(user.birthday_utc.substring(6))
-                    });
-                    if (birthday.isValid) {
-                        birthday = birthday.plus({ minutes: user.birthday_utc_offset });
-                        strings.push(`<@${user.id}> - <t:${birthday.toSeconds()}:F> (<t:${birthday.toSeconds()}:R>)`);
-                    }
+                    if ((0, util_1.validateUTCBirthday)(user, endWindow.year))
+                        strings.push(formatUpcoming(user, (0, util_1.stringToBirthday)(user, endWindow.year)));
                 }
                 if (!strings.length) {
                     await interaction.reply({
@@ -437,7 +433,7 @@ ON CONFLICT DO NOTHING
                 }
                 const strings = [];
                 for (const { user } of result) {
-                    const birthday = (0, util_1.stringToBirthday)(user.birthday_utc, user.birthday_utc_offset, startWindow.year);
+                    const birthday = (0, util_1.stringToBirthday)(user, startWindow.year);
                     strings.push(`<@${user.id}>: ${birthday.toFormat("h:mm a ('UTC' ZZ)")}`);
                 }
                 const guild = interaction.guild;
