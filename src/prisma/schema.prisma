@@ -17,12 +17,16 @@ model Guild {
 }
 
 model User {
-  id                       String           @id @db.VarChar(32)
-  birthday_utc             String           @db.Char(8)
+  id           String @id @db.VarChar(32)
+  birthday_utc String @db.Char(8)
   // Introducing ISO 8601 BirthdayBot format
   // 2 chars for the month, 2 chars for the day, 2 chars for the hour, 2 chars for the minute
   // If the start window and the end window have different years, special checking is required
   // But otherwise, the strings can be sorted lexographically which is nice
+
+  leap_year Boolean @default(false)
+  // This is needed so the bot can figure out the right dates to display for birthdays adjacent to February 29th on leap years...
+
   birthday_utc_offset      Int              @db.SmallInt
   accept_birthday_messages Boolean          @default(true)
   PrivateMessageSenders    PrivateMessage[] @relation(name: "PrivateMessageSenders")
