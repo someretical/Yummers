@@ -90,7 +90,7 @@ export function stringToBirthday(user: GuildUserWithUser['user'], year: number):
         .set({ year });
 }
 
-export function validateUTCBirthday(user: GuildUserWithUser['user'], year: number): boolean {
+export function createOffsetDate(user: GuildUserWithUser['user'], year: number): DateTime {
     const adjusted = DateTime.utc(
         user.leap_year ? 2000 : 2001,
         parseInt(user.birthday_utc.substring(0, 2)),
@@ -99,7 +99,7 @@ export function validateUTCBirthday(user: GuildUserWithUser['user'], year: numbe
         parseInt(user.birthday_utc.substring(6))
     ).plus({ minutes: user.birthday_utc_offset });
 
-    return DateTime.utc(year, adjusted.month, adjusted.day, adjusted.hour, adjusted.minute).isValid;
+    return DateTime.utc(year, adjusted.month, adjusted.day, adjusted.hour, adjusted.minute);
 }
 
 export function paginate<T>(array: Array<T>, pageSize: number, pageNumber: number) {

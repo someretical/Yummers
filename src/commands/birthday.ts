@@ -6,19 +6,35 @@ import Yummers from '../structures/Yummers';
 import {
     DatabaseErrorType,
     GuildUserWithUser,
+    createOffsetDate,
     databaseError,
     getEmbed,
     paginate,
-    stringToBirthday,
-    validateUTCBirthday
+    stringToBirthday
 } from '../util';
 
 const PAGE_SIZE = 15;
 
-function formatUpcoming(user: GuildUserWithUser['user'], date: DateTime) {
-    return `<@${user.id}> - <t:${date.toUnixInteger()}:R> @ <t:${date.toUnixInteger()}:F> ${date.toFormat(
+function formatUpcoming(userId: string, date: DateTime) {
+    return `<@${userId}> - <t:${date.toUnixInteger()}:R> on <t:${date.toUnixInteger()}:F> ${date.toFormat(
         "('UTC' ZZ)"
     )}`;
+}
+
+function getNextBirthday(user: GuildUserWithUser['user']): DateTime {
+    const now = DateTime.utc();
+
+    let year = user.birthday_utc < now.toFormat('LLddHHmm') ? now.year + 1 : now.year;
+    let next = createOffsetDate(user, year);
+
+    // This should only run for Feb 29th birthdays
+    // The i < 4 here is to stop an infinite loop if someone SOMEHOW enters a really dodgy date that breaks the system...
+    for (let i = 0; i < 4 && !next.isValid; i++) {
+        year++;
+        next = createOffsetDate(user, year);
+    }
+
+    return stringToBirthday(user, year);
 }
 
 export default class Birthday extends Command {
@@ -254,12 +270,21 @@ ON CONFLICT DO NOTHING
                     return databaseError(err as Error, DatabaseErrorType.Write, interaction);
                 }
 
+                const next = getNextBirthday({
+                    id: '',
+                    birthday_utc: utcBirthdayString,
+                    birthday_utc_offset: offset.offset(0),
+                    leap_year: birthday.isInLeapYear
+                });
+
                 interaction.reply({
                     embeds: [
                         getEmbed().setDescription(
                             `${
                                 interaction.user.id === id ? 'Your' : `<@${id}>'s`
-                            } birthday has been set to ${birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")}`
+                            } birthday has been set to ${birthday.toFormat(
+                                "LLLL d h:mm a ('UTC' ZZ)"
+                            )}\n\nNext birthday is <t:${next.toUnixInteger()}:R> on <t:${next.toUnixInteger()}:F>. If the time doesn't look right, perhaps play around with the UTC offset a bit.`
                         )
                     ],
                     ephemeral: true
@@ -318,6 +343,7 @@ ON CONFLICT DO NOTHING
                 }
 
                 const birthday = stringToBirthday(userData.user, userData.user.leap_year ? 2000 : 2001);
+                const next = getNextBirthday(userData.user);
 
                 interaction.reply({
                     embeds: [
@@ -327,6 +353,10 @@ ON CONFLICT DO NOTHING
                                 {
                                     name: 'Birthday',
                                     value: birthday.toFormat("LLLL d h:mm a ('UTC' ZZ)")
+                                },
+                                {
+                                    name: 'Next Birthday',
+                                    value: `<t:${next.toUnixInteger()}:F> (<t:${next.toUnixInteger()}:R>)`
                                 },
                                 {
                                     name: 'Messages',
@@ -430,13 +460,13 @@ ON CONFLICT DO NOTHING
 
                 const strings = [];
                 for (const { user } of currentYearBirthdays) {
-                    if (validateUTCBirthday(user, startWindow.year))
-                        strings.push(formatUpcoming(user, stringToBirthday(user, startWindow.year)));
+                    if (createOffsetDate(user, startWindow.year).isValid)
+                        strings.push(formatUpcoming(user.id, stringToBirthday(user, startWindow.year)));
                 }
 
                 for (const { user } of nextYearBirthdays) {
-                    if (validateUTCBirthday(user, endWindow.year))
-                        strings.push(formatUpcoming(user, stringToBirthday(user, endWindow.year)));
+                    if (createOffsetDate(user, endWindow.year).isValid)
+                        strings.push(formatUpcoming(user.id, stringToBirthday(user, endWindow.year)));
                 }
 
                 if (!strings.length) {
