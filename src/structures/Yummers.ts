@@ -391,14 +391,14 @@ class Yummers extends Client {
         const expanded = await (this.prisma.guildUser.findMany(query) as Promise<ExpandedGuildUser[]>);
 
         return expanded.filter(
-            ({ user }) =>
-                DateTime.fromObject({
-                    year: user.birthday_utc < startWindowString ? endWindow.year : startWindow.year,
-                    month: parseInt(user.birthday_utc.substring(0, 2)),
-                    day: parseInt(user.birthday_utc.substring(2, 4)),
-                    hour: parseInt(user.birthday_utc.substring(4, 6)),
-                    minute: parseInt(user.birthday_utc.substring(6))
-                }).isValid
+            ({ user: { birthday_utc } }) =>
+                DateTime.utc(
+                    birthday_utc < startWindowString ? endWindow.year : startWindow.year,
+                    parseInt(birthday_utc.substring(0, 2)),
+                    parseInt(birthday_utc.substring(2, 4)),
+                    parseInt(birthday_utc.substring(4, 6)),
+                    parseInt(birthday_utc.substring(6))
+                ).isValid
         );
     }
 
