@@ -15,6 +15,7 @@ import {
     TextChannel
 } from 'discord.js';
 import { DateTime, Duration } from 'luxon';
+import { createOffsetDate } from '../util';
 import Command from './Command';
 import Logger from './Logger';
 
@@ -32,6 +33,8 @@ interface ExpandedGuildUser extends GuildUser {
     user: {
         id: string;
         birthday_utc: string;
+        birthday_utc_offset: number;
+        leap_year: boolean;
     };
 }
 
@@ -302,7 +305,9 @@ class Yummers extends Client {
                 user: {
                     select: {
                         id: true,
-                        birthday_utc: true
+                        birthday_utc: true,
+                        birthday_utc_offset: true,
+                        leap_year: true
                     }
                 }
             }
@@ -390,15 +395,11 @@ class Yummers extends Client {
 
         const expanded = await (this.prisma.guildUser.findMany(query) as Promise<ExpandedGuildUser[]>);
 
+        // Filter out Feb 29ths if it is not a leap year
         return expanded.filter(
-            ({ user: { birthday_utc } }) =>
-                DateTime.utc(
-                    birthday_utc < startWindowString ? endWindow.year : startWindow.year,
-                    parseInt(birthday_utc.substring(0, 2)),
-                    parseInt(birthday_utc.substring(2, 4)),
-                    parseInt(birthday_utc.substring(4, 6)),
-                    parseInt(birthday_utc.substring(6))
-                ).isValid
+            ({ user }) =>
+                createOffsetDate(user, user.birthday_utc < startWindowString ? endWindow.year : startWindow.year)
+                    .isValid
         );
     }
 
