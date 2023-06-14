@@ -26,7 +26,7 @@ function getEmbed() {
 exports.getEmbed = getEmbed;
 function stringToBirthday(user, year) {
     /*
-    The reason why we need to first set the year to 2000 and THEN set it to the proper year is really janky.
+    The reason why we need to first set the year to 2000 and THEN set it to the proper year is really broken.
     Let us say that the user's birthday is March 1st 2004 at 12:00 AM UTC+10:00. This means the birthday happened at 2PM UTC on February 29th 2004. This is version that is stored in the database.
 
     The validateUTCBirthday function below will return true if we pass in the year 2023.
@@ -67,7 +67,7 @@ function stringToBirthday(user, year) {
     - hour: 14
     - minute: 0
 
-    This is why we have to first set the year to 2000 and then afterwards set it to the actual year we want. The set() function will properly "round" the date to the correct one that we want which is actually Februrary 28th 2PM UTC or March 1st 12AM UTC+10:00.
+    This is why we have to first set the year to 2000 and then afterwards set it to the actual year we want. The set() function will properly "round" the date to the correct one that we want which is actually February 28th 2PM UTC or March 1st 12AM UTC+10:00.
 
     This is also why in the validateUTCBirthday function we cannot use the set() function to set the new year. We do NOT want the set function to round the date if it becomes invalid! This is why we construct a new date and directly check if it's invalid.
     */

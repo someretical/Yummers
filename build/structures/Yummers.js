@@ -156,7 +156,7 @@ class Yummers extends discord_js_1.Client {
         }
         catch (err) {
             guildMap.delete(userId);
-            Logger_1.default.err(`Couldn't get member ${this.users.cache.get(userId)?.tag ?? userId} in guild ${guild.name}. Skppping...`);
+            Logger_1.default.err(`Couldn't get member ${this.users.cache.get(userId)?.tag ?? userId} in guild ${guild.name}. Skipping...`);
             Logger_1.default.err(err);
             return;
         }
@@ -253,7 +253,7 @@ class Yummers extends discord_js_1.Client {
         if (guildId)
             query.where.guild.id = guildId;
         // We assume that the max interval is one day.
-        // This means if the window crosses years, then the start must be the same day as the last day of the previous year and the end must be the same day as the first day of the next (crrrent) year.
+        // This means if the window crosses years, then the start must be the same day as the last day of the previous year and the end must be the same day as the first day of the next (current) year.
         if (startWindow.year !== endWindow.year) {
             const prevYearEndString = startWindow.endOf('year').toFormat('LLddHHmm');
             const curYearStartString = endWindow.startOf('year').toFormat('LLddHHmm');
@@ -356,7 +356,7 @@ class Yummers extends discord_js_1.Client {
                 return;
             }
             if (!sGuild || !sGuild.birthday_role_id || !sGuild.birthdays_enabled) {
-                Logger_1.default.warn(`Guild does not exist in databse/empty role ID/birthdays not enabled. Skipping...`);
+                Logger_1.default.warn(`Guild does not exist in database/empty role ID/birthdays not enabled. Skipping...`);
                 return;
             }
             try {
@@ -403,28 +403,28 @@ class Yummers extends discord_js_1.Client {
         Logger_1.default.info(`Next refresh at ${endWindow
             .plus(luxon_1.Duration.fromObject({ milliseconds: interval }))
             .toFormat('LLLL dd HH:mm')}`);
-        let relos = [];
+        let guildUsers = [];
         try {
-            relos = await this.fetchNewBirthdays(startWindow, endWindow, userId, guildId);
+            guildUsers = await this.fetchNewBirthdays(startWindow, endWindow, userId, guildId);
         }
         catch (err) {
-            Logger_1.default.err(`Failed to retrieve elegible guild/user relationships from the database`);
+            Logger_1.default.err(`Failed to retrieve eligible guild/user relationships from the database`);
             Logger_1.default.err(`userId: ${userId}, guildId: ${guildId}`);
             Logger_1.default.err(err);
             return;
         }
-        Logger_1.default.info(`Retrieved ${relos.length} elegible guild/user relationships from the database`);
-        if (relos.length === 0) {
+        Logger_1.default.info(`Retrieved ${guildUsers.length} eligible guild/user relationships from the database`);
+        if (guildUsers.length === 0) {
             return;
         }
         const guildUserMap = new Map();
         const guildMap = new Map();
-        for (const relo of relos) {
-            if (!guildUserMap.has(relo.guild.id)) {
-                guildUserMap.set(relo.guild.id, []);
-                guildMap.set(relo.guild.id, relo.guild);
+        for (const gUser of guildUsers) {
+            if (!guildUserMap.has(gUser.guild.id)) {
+                guildUserMap.set(gUser.guild.id, []);
+                guildMap.set(gUser.guild.id, gUser.guild);
             }
-            guildUserMap.get(relo.guild.id).push(relo.user.id);
+            guildUserMap.get(gUser.guild.id).push(gUser.user.id);
         }
         const promises = [];
         for (const [gId, userIds] of guildUserMap) {

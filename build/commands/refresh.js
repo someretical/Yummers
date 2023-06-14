@@ -17,18 +17,18 @@ class Refresh extends Command_1.default {
                 .addSubcommand((subcommand) => subcommand
                 .setName('birthdays')
                 .setDescription('Refresh birthdays')
-                .addStringOption((option) => option.setName('guildid').setDescription('Refresh a specific server'))
-                .addStringOption((option) => option.setName('userid').setDescription('Refresh a specific user'))
+                .addStringOption((option) => option.setName('guild-id').setDescription('Refresh a specific server'))
+                .addStringOption((option) => option.setName('user-id').setDescription('Refresh a specific user'))
                 .addIntegerOption((option) => option
                 .setName('interval')
                 .setDescription('Interval to refresh (ms)')
                 .setMinValue(0)
                 .setMaxValue(24 * 60 * 60 * 1000 - 60 * 1000)))
                 .addSubcommand((subcommand) => subcommand
-                .setName('guilduser')
+                .setName('guild-user')
                 .setDescription('Refresh guild/user relationships')
-                .addStringOption((option) => option.setName('userid').setDescription('Refresh a specific user'))
-                .addStringOption((option) => option.setName('guildid').setDescription('Refresh a specific guild'))),
+                .addStringOption((option) => option.setName('user-id').setDescription('Refresh a specific user'))
+                .addStringOption((option) => option.setName('guild-id').setDescription('Refresh a specific guild'))),
             throttling: {
                 usages: 0,
                 duration: 0
@@ -43,8 +43,8 @@ class Refresh extends Command_1.default {
         }
         switch (interaction.options.getSubcommand()) {
             case 'birthdays': {
-                const guildId = interaction.options.getString('guildid') || interaction.guildId;
-                const userId = interaction.options.getString('userid');
+                const guildId = interaction.options.getString('guild-id') || interaction.guildId;
+                const userId = interaction.options.getString('user-id');
                 const interval = interaction.options.getInteger('interval') || 24 * 60 * 60 * 1000 - 60 * 1000;
                 const embed = (0, util_1.getEmbed)().addFields([
                     {
@@ -76,9 +76,9 @@ class Refresh extends Command_1.default {
                 });
                 break;
             }
-            case 'guilduser': {
-                const userId = interaction.options.getString('userid');
-                const guildId = interaction.options.getString('guildid') || interaction.guildId;
+            case 'guild-user': {
+                const userId = interaction.options.getString('user-id');
+                const guildId = interaction.options.getString('guild-id') || interaction.guildId;
                 if (!guildId && userId) {
                     await interaction.reply({
                         embeds: [(0, util_1.getEmbed)().setDescription('Cannot provide userId alone!')]
