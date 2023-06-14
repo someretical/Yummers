@@ -24,8 +24,9 @@ class ClientReady extends Event_1.default {
         const interval = 15 * 60 * 1000;
         await this.client.scanNewBirthdays(interval);
         setInterval(async () => {
-            await this.client.scanExpiredBirthdays();
+            // The ordering here is extremely important. See the end of fetchNewBirthdays in Yummers.ts for more information.
             await this.client.scanNewBirthdays(interval);
+            await this.client.scanExpiredBirthdays();
         }, interval);
     }
 }

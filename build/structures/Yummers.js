@@ -323,9 +323,22 @@ class Yummers extends discord_js_1.Client {
             query.where.user = conditions;
         }
         const expanded = await this.prisma.guildUser.findMany(query);
-        // Filter out Feb 29ths if it is not a leap year
-        return expanded.filter(({ user }) => (0, util_1.createOffsetDate)(user, user.birthday_utc < startWindowString ? endWindow.year : startWindow.year)
-            .isValid);
+        return expanded.filter(({ user, guild_id }) => {
+            /*
+            We need to check if the user is already in the currentBirthdays map because of the following scenario:
+            
+            The user's birthday is within the last 5 minutes of a scan window. In this context, last means it's the 5 closest minutes to the endWindow.
+            This means the birthday may be picked up by 2 scanNewBirthdays in a row. We scan the previous 20 minutes every 15 minutes to cover for any latency issues.
+            So in this case, the user's birthday will double trigger unless we check if the user is already in the currentBirthdays map.
+            A side effect of this is that we must scan for new birthdays first and THEN remove old birthdays!
+            */
+            const inCurrentBirthdays = this.currentBirthdays.get(guild_id)?.has(user.id);
+            const cond = inCurrentBirthdays === undefined || inCurrentBirthdays === false ? true : false;
+            return (
+            // Filter out Feb 29ths if it is not a leap year
+            (0, util_1.createOffsetDate)(user, user.birthday_utc < startWindowString ? endWindow.year : startWindow.year)
+                .isValid && cond);
+        });
     }
     async scanExpiredBirthdays() {
         Logger_1.default.info('\nScanning old birthdays...');
