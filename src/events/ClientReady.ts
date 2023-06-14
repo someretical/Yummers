@@ -24,8 +24,9 @@ export default class ClientReady extends Event {
 
         await this.client.scanNewBirthdays(interval);
         setInterval(async () => {
-            await this.client.scanExpiredBirthdays();
+            // The ordering here is extremely important. See the end of fetchNewBirthdays in Yummers.ts for more information.
             await this.client.scanNewBirthdays(interval);
+            await this.client.scanExpiredBirthdays();
         }, interval);
     }
 }
