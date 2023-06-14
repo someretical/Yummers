@@ -15,6 +15,7 @@
         "editor.rulers": [120],
         "[prisma]": {
             "editor.defaultFormatter": "Prisma.prisma"
-        }
+        },
+        "cSpell.words": ["Throttler", "Yummers"]
     }
 }
