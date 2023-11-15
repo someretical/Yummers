@@ -10,10 +10,11 @@ const Yummers_1 = __importDefault(require("./structures/Yummers"));
     await client.loadEvents();
     await client.loadCommands();
     try {
-        client.login(process.env.TOKEN);
+        await client.login(process.env.TOKEN);
     }
     catch (err) {
         Logger_1.default.err('Failed to login');
         Logger_1.default.err(err);
+        process.exit(1);
     }
 })();

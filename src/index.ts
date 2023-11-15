@@ -7,9 +7,10 @@ import Yummers from './structures/Yummers';
     await client.loadCommands();
 
     try {
-        client.login(process.env.TOKEN);
+        await client.login(process.env.TOKEN);
     } catch (err) {
         Logger.err('Failed to login');
         Logger.err(err as Error);
+        process.exit(1);
     }
 })();
